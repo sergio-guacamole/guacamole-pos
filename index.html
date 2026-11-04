@@ -863,7 +863,7 @@ function vAjustes(){
       <div style="align-self:end"><button class="btn primary" data-act="set-pin">${S.aj.pinHash?'Cambiar PIN':'Guardar PIN'}</button></div></div></div>
     <div class="panel"><h3>Instalación (solo instalador)</h3>
       ${S.instOk?`<p class="muted" style="margin:0">Carga el menú de ejemplo de un giro. Reemplaza el menú actual; las ventas no se tocan. “Negocio nuevo” además borra nombre, dirección, teléfono, logo y QR para capturar los del cliente.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(PLANTILLAS).map(([k,v])=>S.tpl===k?`<button class="btn danger" data-act="tpl-si" data-k="${k}" data-nuevo="1">${v.n}: negocio nuevo</button><button class="btn" data-act="tpl-si" data-k="${k}">${v.n}: solo menú</button><button class="btn" data-act="tpl" data-k="">Cancelar</button>`:`<button class="btn" data-act="tpl" data-k="${k}">${v.n}</button>`).join('')}</div>`
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(PLANTILLAS).map(([k,v])=>S.tpl===k?`<button class="btn danger" data-act="tpl-si" data-k="${k}" data-nuevo="1">${v.n}: negocio nuevo</button><button class="btn" data-act="tpl-si" data-k="${k}">${v.n}: solo menú</button><button class="btn" data-act="tpl" data-k="">Cancelar</button>`:`<button class="btn" data-act="tpl" data-k="${k}">${v.n}</button>`).join('')}</div><div><button class="btn small" data-act="inst-out">Salir de instalador</button></div>`
       :`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end"><label style="flex:1;min-width:200px"><span class="label">Clave de instalador</span><input class="in" id="inst-key" type="password" autocomplete="off"></label><button class="btn" data-act="inst">Entrar</button></div>`}
     </div>
     <div class="panel"><h3>Mesas</h3><div class="form">
@@ -1058,7 +1058,7 @@ document.addEventListener('click',async e=>{
     case 'nav':{const v=b.dataset.v;
       if((v==='menu'||v==='ajustes')&&S.aj.pinHash&&!S.adminOk){pedirAuth({titulo:'Entrar a '+(v==='menu'?'Menú':'Ajustes'),motivo:false,ok:()=>{S.adminOk=true;S.view=v;S.menuDraft=null;S.ajDraft=null;render()}});break}
       if(v!=='menu'&&v!=='ajustes')S.adminOk=false;
-      S.view=v;S.menuDraft=null;S.ajDraft=null;S.anular=null;render();break}
+      S.view=v;S.menuDraft=null;S.ajDraft=null;S.anular=null;S.instOk=false;S.tpl=null;render();break}
     case 'cat':S.cat=b.dataset.id;render();break;
     case 'tap':{const p=prod(b.dataset.id);
       if(!p.pres&&!(p.g||[]).length){addFromSheet({pid:p.id,pres:null,sel:{},nota:'',qty:1});render();toast(p.n+' agregado');}
@@ -1181,6 +1181,7 @@ document.addEventListener('click',async e=>{
     case 'restore-no':S.restore=null;render();break;
     case 'restore-si':{const o=S.restore;S.restore=null;await Store.restore(o);toast('Respaldo restaurado');render();break}
     case 'tpl':S.tpl=b.dataset.k||null;render();break;
+    case 'inst-out':S.instOk=false;S.tpl=null;render();toast('Saliste del modo instalador');break;
     case 'inst':{const k=($('#inst-key')||{}).value||'';if(await sha(k.trim())===INST_HASH){S.instOk=true;render()}else toast('Clave incorrecta');break}
     case 'tpl-si':{if(!S.instOk)break;const tp=PLANTILLAS[b.dataset.k];S.tpl=null;await Store.set('config','menu',clone(tp.menu));if(tp.aj||b.dataset.nuevo){const a2={...S.aj,...(b.dataset.nuevo?{...BLANK_AJ,premioPid:tp.menu.prods[0].id}:{}),...(tp.aj||{})};await Store.set('config','ajustes',a2);S.aj=a2;S.ajDraft=null}S.menu=clone(tp.menu);S.cat=S.menu.cats[0].id;S.menuDraft=null;toast('Menú de '+tp.n+' cargado');render();break}
     case 'regalo':{if(o.items.some(l=>l.regalo))break;
