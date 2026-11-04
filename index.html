@@ -267,6 +267,50 @@ const DEFAULT_MENU={
     {id:'strudel',c:'postres',n:'Strudel de manzana',p:15,on:true}
   ]
 };
+const OL=(...a)=>a.map(n=>O(n));
+const CREP_MENU={
+  cats:[{id:'cal',n:'Lo caliente'},{id:'esp',n:'Lo especial'},{id:'glace',n:'Glacé'},{id:'frappe',n:'Frappé'},{id:'fcafe',n:'Frappucafé'},{id:'refr',n:'Lo refrescante'},{id:'smoo',n:'Smoothie'},{id:'crepa',n:'Crepa a tu gusto'},{id:'esal',n:'Crepas saladas'},{id:'edul',n:'Crepas dulces'}],
+  grupos:{
+    leche:{n:'Leche',t:'opcion',min:1,max:1,o:OL('Entera','Deslactosada')},
+    extCal:{n:'Extras',t:'extra',min:0,max:2,o:[O('Leche de coco',15),O('Crema batida',15)]},
+    extCoco:{n:'Extras',t:'extra',min:0,max:1,o:[O('Leche de coco',15)]},
+    modo:{n:'Preparación',t:'opcion',min:1,max:1,o:OL('Caliente','Glacé','Frappeado (con crema batida)')},
+    limon:{n:'Agua',t:'opcion',min:1,max:1,o:OL('Mineral','Natural')},
+    soda:{n:'Sabor',t:'opcion',min:1,max:1,o:OL('Guayaba','Manzana','Mixmoras')},
+    sabor:{n:'Sabor',t:'opcion',min:1,max:1,o:OL('Limón chía','Guayaba','Manzana','Mixmora','Fresa','Kiwi','Piña colada','Plátano','Coco','Durazno')},
+    duo:{n:'Combinación',t:'opcion',min:1,max:1,o:OL('Nutella-plátano','Kiwi-fresa','Guayaba-coco','Mixmoras-plátano','Piña-kiwi','Durazno-kiwi')},
+    lecheS:{n:'Leche',t:'opcion',min:1,max:1,o:OL('Entera','Deslactosada','Coco')},
+    ingSal:{n:'Ingredientes',t:'opcion',min:2,max:10,steps:[0,0],extra:35,o:OL('Queso gouda','Queso crema','Jamón','Pepperoni','Salami','Tocineta','Pollo','Huevo','Espinaca','Champiñón','Tomate confitado')},
+    ingDul:{n:'Ingredientes',t:'opcion',min:1,max:10,steps:[0,20,20],extra:35,o:OL('Crumble','Guayaba','Manzana','Mixmora','Nutella','Crema de cacahuate','Cajeta','Lechera','Chocolate semiamargo','Chocolate blanco','Hershey','Maple','Queso crema','Fresas','Kiwi','Plátano','Durazno','Piña','Nuez','Almendras','Coco','Granola','Mix special','Oreo')},
+    licor:{n:'Licor',t:'extra',min:0,max:3,o:[O('Kahlúa',35),O('Controy',35),O('Rompope',35)]},
+    salsaC:{n:'Salsa',t:'salsa',min:0,max:4,o:OL('Habanero','Guacamole','Chipotle','Tabasco')},
+    cond:{n:'Condimentos',t:'opcion',min:0,max:4,o:OL('Pimienta especial','Perejil','Cebollín','Ajonjolí')}
+  },
+  prods:[
+    ...[['Espresso',50],['Europeo',65],['Flat white',65],['Americano',55],['Té',45]].map(([n,p],i)=>({id:'cal'+i,c:'cal',n,p,on:true})),
+    {id:'capu',c:'cal',n:'Cappuccino',p:65,g:['leche','extCal'],on:true},
+    {id:'latte',c:'cal',n:'Latte',p:70,g:['leche','extCal'],on:true},
+    {id:'moka',c:'cal',n:'Moka',pres:[O('Oscuro',75),O('Blanco',95)],g:['leche','extCal'],on:true},
+    {id:'choco',c:'cal',n:'Chocolate',pres:[O('Oscuro',65),O('Blanco',85)],g:['leche','extCal'],on:true},
+    {id:'vleche',c:'cal',n:'Vaso de leche',p:35,g:['leche'],on:true},
+    ...[['Peanutella','Crema de cacahuate y Nutella',135],['Horchalatte','Nuez y canela',100],['Rollo guayaba','Cajeta, guayaba, nuez',125],['Chai latte','',95],['Matcha latte','',95],['Taro latte','',95],['Purple taro','Un toque de mixmoras',110],['Frappubanane','Café, Nutella, chocolate y Kahlúa',135],['Fresacreme','Vaso 16 oz grande',135]].map(([n,d,p],i)=>({id:'esp'+i,c:'esp',n,d,p,g:['modo','leche','extCoco'],on:true})),
+    ...[['Olé dalgona','Espuma de café',85],['Coco latte','Café y coco',95],['Macchiato caramel latte','Café, caramel y vainilla',110]].map(([n,d,p],i)=>({id:'gla'+i,c:'glace',n,d,p,g:['leche','extCoco'],on:true})),
+    ...[['Frappé vainilla',65],['Frappé Oreo',80],['Frappé Nutella',95],['Frappé caramel',85],['Frappé rompope',90],['Frappé mazapán',95]].map(([n,p],i)=>({id:'fra'+i,c:'frappe',n,p,g:['leche','extCoco'],on:true})),
+    {id:'frach',c:'frappe',n:'Frappé chocolate',pres:[O('Oscuro',80),O('Blanco',90)],g:['leche','extCoco'],on:true},
+    ...[['Frappucafé',75],['Frappucafé Oreo',85],['Frappucafé caramel',110],['Frappucafé rompope',110],['Frappucafé mazapán',110]].map(([n,p],i)=>({id:'fca'+i,c:'fcafe',n,p,g:['leche','extCoco'],on:true})),
+    {id:'fcamo',c:'fcafe',n:'Frappucafé moka',pres:[O('Oscuro',85),O('Blanco',100)],g:['leche','extCoco'],on:true},
+    {id:'fcacc',c:'fcafe',n:'Frappucafé cookies & cream',pres:[O('Oscuro',95),O('Blanco',115)],g:['leche','extCoco'],on:true},
+    {id:'limo',c:'refr',n:'Limonada rose',d:'Limón con fresa',p:95,g:['limon'],on:true},
+    {id:'soda',c:'refr',n:'Soda italiana',p:95,g:['soda'],on:true},
+    {id:'smoo',c:'smoo',n:'Smoothie',pres:[O('Agua',70),O('Chamoy',75),O('Leche',80),O('Crema coco',90),O('Yogurt',95)],g:['sabor'],on:true},
+    {id:'smduo',c:'smoo',n:'Smoothie dúo',p:110,g:['duo','lecheS'],on:true},
+    {id:'csal',c:'crepa',n:'Crepa salada',d:'Dos ingredientes; cada extra +$35',p:100,g:['ingSal','salsaC','cond'],on:true},
+    {id:'cdul',c:'crepa',n:'Crepa dulce',d:'1 ingrediente $70, 2 $90, 3 $110; cada extra +$35',p:70,g:['ingDul','licor'],on:true},
+    ...[['Du Matin','2 huevos, espinaca, jamón y queso gouda',135],['Yndra','Pollo, tocineta, tomate confitado, espinaca y queso gouda',165],['Aloha','Jamón, piña, tocineta y queso gouda',135],['New-York','Pepperoni, jamón, salami y queso gouda',135],['Q-Delicia','Champiñón, jamón y queso gouda',135],['Crêpe waffle','Jamón, durazno, maple y queso gouda',135],['Picasso','Tomate confitado, pepperoni, queso crema y gouda',135],['Campesina','Espinaca, champiñón, tomate confitado y queso gouda',145],['Crêpizza','Pepperoni y queso gouda',115],['Fromage','Queso crema y queso gouda',115]].map(([n,d,p],i)=>({id:'es'+i,c:'esal',n,d,p,g:['salsaC','cond'],on:true})),
+    ...[['Pan francés','Pan de caja, fruta, maple y azúcar glass',145],['Golden bite','Mixmoras, queso crema y crema de cacahuate',135],['Hotcrêpe','3 frutas del día, mantequilla y miel maple',135],['La Paris','Mantequilla, mascabado y canela',60],['Banane','Guayaba, nuez, queso crema y azúcar glass',125],['Pomm','Manzana, canela, nuez, queso crema y azúcar glass',135],['Bicho','Plátano, mixmoras, almendra, queso crema y azúcar glass',135],['Topic','Piña, coco, lechera, queso crema y Controy',135],['Isla bonita','Duraznos, kiwi, queso crema y lechera',135],['Miguel Ángel','Cajeta, plátano, nuez y Kahlúa',135],['Dulce Polly','Nutella, fresas, nuez, queso crema y Kahlúa',145],['Martán','Duraznos, coco, queso crema y rompope',125],['Bombom','Durazno, nuez, almendra, lechera y Controy',135],['Selva negra','Chocosemi, mixmoras, almendra, queso crema y azúcar glass',145],['Chocobanane','Oreo, plátano, chocosemi, queso crema y Nutella',145],['Blueblanc','Chocoblanco, mixmoras, queso crema y azúcar glass',125]].map(([n,d,p],i)=>({id:'ed'+i,c:'edul',n,d,p,g:['licor'],on:true}))
+  ]
+};
+const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU}};
 const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review'};
 const TIPOS={mostrador:'Mostrador',mesa:'Mesa',pedido:'Pedido'};
 const METODOS={efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',rappi:'Rappi',uber:'Uber Eats'};
@@ -346,6 +390,8 @@ function descLines(l){
   (l.mods||[]).filter(m=>m.t==='extra').forEach(m=>out.push('+ '+m.n));
   if(by('salsa').length)out.push('Salsa: '+by('salsa').join(', '));
   if(by('aderezo').length)out.push('Aderezo: '+by('aderezo').join(', '));
+  const otros={};(l.mods||[]).filter(m=>!['extra','salsa','aderezo','quitar'].includes(m.t)).forEach(m=>{(otros[m.g||'Opción']=otros[m.g||'Opción']||[]).push(m.n)});
+  Object.entries(otros).forEach(([g,ns])=>out.push(g+': '+ns.join(', ')));
   if(by('quitar').length)out.push('Sin '+by('quitar').join(', ').toLowerCase());
   if(l.nota)out.push('Nota: '+l.nota);
   if(l.regalo)out.push('Regalo por fidelidad');
@@ -464,7 +510,7 @@ function openPrint(titulo,doc,then){
 /* ===================== Render principal ===================== */
 function renderRail(){
   const n=S.cuentas.length;
-  $('#rail').innerHTML=`<div class="brand">Guaca&shy;mole</div>`+
+  $('#rail').innerHTML=`<div class="brand">${h(S.aj.negocio||'Mi negocio')}</div>`+
     [['vender','Vender'],['cuentas','Cuentas'],['caja','Caja'],['clientes','Clientes'],['reportes','Reportes'],['menu','Menú'],['ajustes','Ajustes']].map(([k,t])=>
     `<button data-act="nav" data-v="${k}" ${S.view===k?'aria-current="page"':''}>${svg(k)}${t}${k==='cuentas'&&n?`<span class="badge num">${n}</span>`:''}</button>`).join('')+
     `<button data-act="cajon" class="rail-cajon">${svg('abrir')}Abrir cajón</button>`;
@@ -739,6 +785,9 @@ function vAjustes(){
       <p class="muted" style="margin:0">${S.aj.pinHash?'PIN de dueño activo. Se pide para cancelar cuentas, quitar productos ya enviados a cocina, anular ventas, abrir el cajón sin venta, sacar efectivo y entrar a Menú y Ajustes.':'Aún no hay PIN. Sin PIN, cualquiera puede cancelar cuentas o abrir el cajón (igual queda registrado el motivo).'}</p>
       <div class="form"><label><span class="label">${S.aj.pinHash?'Nuevo PIN':'Crear PIN'} (4 a 6 números)</span><input class="in num" id="aj-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6"></label>
       <div style="align-self:end"><button class="btn primary" data-act="set-pin">${S.aj.pinHash?'Cambiar PIN':'Guardar PIN'}</button></div></div></div>
+    <div class="panel"><h3>Plantilla de menú</h3>
+      <p class="muted" style="margin:0">Carga el menú de ejemplo de un giro. Reemplaza todo el menú actual (las ventas no se tocan).</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(PLANTILLAS).map(([k,v])=>S.tpl===k?`<button class="btn danger" data-act="tpl-si" data-k="${k}">¿Reemplazar por ${v.n}? Toca otra vez</button>`:`<button class="btn" data-act="tpl" data-k="${k}">${v.n}</button>`).join('')}</div></div>
     <div class="panel"><h3>Mesas</h3><div class="form">
       <label><span class="label">Número de mesas</span><input class="in num" id="aj-mesas" data-a="mesas" inputmode="numeric" value="${h(a.mesas)}"></label></div></div>
     <div class="panel"><h3>Programa de lealtad</h3>
@@ -779,8 +828,8 @@ function renderModal(){
       ${p.pres?`<div class="grp"><div class="grp-h"><h3>Presentación</h3><span class="req">Obligatorio</span></div><div class="opts">
         ${p.pres.map((x,i)=>`<button class="opt" data-act="pres" data-i="${i}" aria-pressed="${m.pres===i}">${h(x.n)}<small class="num">${money(x.p)}</small></button>`).join('')}</div></div>`:''}
       ${(p.g||[]).map(gid=>{const g=grupo(gid);if(!g)return'';const sel=m.sel[gid]||[];
-        return `<div class="grp"><div class="grp-h"><h3>${h(g.n)}</h3><span class="req">${g.min?`Obligatorio · elige ${g.min===g.max?g.min:`${g.min} a ${g.max}`}`:g.t==='quitar'?'Opcional':`Hasta ${g.max}`}</span></div><div class="opts">
-        ${g.o.map((x,j)=>`<button class="opt${g.t==='quitar'?' quit':''}" data-act="opt" data-g="${gid}" data-j="${j}" aria-pressed="${sel.includes(j)}">${g.t==='quitar'?'Sin '+h(x.n).toLowerCase():h(x.n)}${+x.p?`<small class="num">+${money(x.p)}</small>`:''}</button>`).join('')}</div></div>`}).join('')}
+        return `<div class="grp"><div class="grp-h"><h3>${h(g.n)}</h3><span class="req">${g.min?`Obligatorio · elige ${g.min===g.max?g.min:`${g.min} a ${g.max}`}`:g.t==='quitar'?'Opcional':`Hasta ${g.max}`}${g.steps?' · '+stepsTxt(g):''}</span></div><div class="opts">
+        ${g.o.map((x,j)=>`<button class="opt${g.t==='quitar'?' quit':''}" data-act="opt" data-g="${gid}" data-j="${j}" aria-pressed="${sel.includes(j)}">${g.t==='quitar'?'Sin '+h(x.n).toLowerCase():h(x.n)}${!g.steps&&+x.p?`<small class="num">+${money(x.p)}</small>`:''}${g.steps&&sel.includes(j)&&stepPrice(g,sel.indexOf(j))?`<small class="num">+${money(stepPrice(g,sel.indexOf(j)))}</small>`:''}</button>`).join('')}</div></div>`}).join('')}
       <label class="grp"><h3>Nota para cocina</h3><input class="in" id="m-nota" data-mf="nota" placeholder="Ej. bien cocida, salsa aparte" value="${h(m.nota)}"></label>
     </div><div class="sheet-f">
       <div class="stepper"><button data-act="mqty" data-d="-1" aria-label="Menos">−</button><span class="num" id="m-qty">${m.qty}</span><button data-act="mqty" data-d="1" aria-label="Más">+</button></div>
@@ -823,9 +872,11 @@ function renderModal(){
   }
   el.innerHTML=`<div class="scrim" data-act="scrim">${inner}</div>`;
 }
+function stepsTxt(g){const s=g.steps||[];const parts=[];s.forEach((v,i)=>parts.push(`${i+1}º ${+v?'+'+money(v):'incluido'}`));parts.push(`más +${money(g.extra||0)} c/u`);return parts.join(', ')}
+function stepPrice(g,i){return g.steps?(i<g.steps.length?+g.steps[i]:+(g.extra||0)):+(g.o[i]?.p||0)}
 function sheetUnit(m){
   const p=prod(m.pid);let u=p.pres?(m.pres==null?0:+p.pres[m.pres].p):+p.p;
-  for(const [gid,sel] of Object.entries(m.sel)){const g=grupo(gid);if(g)sel.forEach(j=>u+=(+g.o[j]?.p||0))}
+  for(const [gid,sel] of Object.entries(m.sel)){const g=grupo(gid);if(g)sel.forEach((j,i)=>u+=g.steps?stepPrice(g,i):(+g.o[j]?.p||0))}
   return r2(u);
 }
 function closeModal(){const m=S.modal;S.modal=null;renderModal();if(m&&m.then)m.then()}
@@ -836,7 +887,7 @@ function addFromSheet(m){
   for(const gid of (p.g||[])){const g=grupo(gid);if(g&&g.min&&(m.sel[gid]||[]).length<g.min){toast('Elige '+g.n.toLowerCase());return false}}
   if(p.pres&&m.pres==null){toast('Elige la presentación');return false}
   const mods=[];
-  for(const gid of (p.g||[])){const g=grupo(gid);if(!g)continue;(m.sel[gid]||[]).forEach(j=>{const x=g.o[j];if(x)mods.push({t:g.t,n:x.n,p:+x.p||0})})}
+  for(const gid of (p.g||[])){const g=grupo(gid);if(!g)continue;(m.sel[gid]||[]).forEach((j,i)=>{const x=g.o[j];if(x)mods.push({t:g.t,n:x.n,p:g.steps?stepPrice(g,i):(+x.p||0),g:g.n})})}
   const line={uid:m.edit||uid(),pid:p.id,n:p.n,pres:p.pres?p.pres[m.pres].n:null,base:p.pres?+p.pres[m.pres].p:+p.p,mods,nota:m.nota.trim(),qty:m.qty,enviado:false,sel:m.sel,presIdx:m.pres};
   const it=S.orden.items;
   if(m.edit){const i=it.findIndex(l=>l.uid===m.edit);if(i>=0)it[i]=line}else{
@@ -1040,6 +1091,8 @@ document.addEventListener('click',async e=>{
     case 'respaldo':descargarRespaldo();break;
     case 'restore-no':S.restore=null;render();break;
     case 'restore-si':{const o=S.restore;S.restore=null;await Store.restore(o);toast('Respaldo restaurado');render();break}
+    case 'tpl':S.tpl=b.dataset.k;render();break;
+    case 'tpl-si':{const tp=PLANTILLAS[b.dataset.k];S.tpl=null;await Store.set('config','menu',clone(tp.menu));S.menu=clone(tp.menu);S.cat=S.menu.cats[0].id;S.menuDraft=null;toast('Menú de '+tp.n+' cargado');render();break}
     case 'regalo':{if(o.items.some(l=>l.regalo))break;
       o.items.push({uid:uid(),pid:'clasica',n:'Hamburguesa Clásica',pres:'Normal',base:0,mods:[],nota:'',qty:1,enviado:false,regalo:true});
       render();toast('Clásica de regalo agregada');break}
