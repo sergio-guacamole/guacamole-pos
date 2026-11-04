@@ -313,7 +313,7 @@ const CREP_MENU={
 };
 const DEMAS=['Pastor','Buche','Suadero','Chorizo','Cabeza','Bistec adobado'];
 const carnes=(d,b,tr,l)=>[...DEMAS.map(n=>O(n,d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)];
-const campe=(d,b,tr,l,past)=>({n:'Campechano con',t:'opcion',mode:'max',min:0,max:1,o:[...DEMAS.map(n=>O(n,n==='Pastor'&&past!=null?past:d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)]});
+const campe=(d,b,tr,l,past)=>({n:'Carnes',t:'opcion',mode:'max',min:2,max:2,o:[...DEMAS.map(n=>O(n,n==='Pastor'&&past!=null?past:d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)]});
 const TACO_MENU={
   cats:[{id:'tacos',n:'Tacos'},{id:'volcan',n:'Volcán'},{id:'quesa',n:'Quesadillas'},{id:'gringa',n:'Gringas'},{id:'torta',n:'Tortas'},{id:'burrito',n:'Burritos'},{id:'kilo',n:'Pastor por kilo'},{id:'aguas',n:'Aguas y licuados'},{id:'coctel',n:'Cócteles'},{id:'refresco',n:'Refrescos'}],
   grupos:{
@@ -328,12 +328,18 @@ const TACO_MENU={
   },
   prods:[
     {id:'tpastor',c:'tacos',n:'Pastor 2x1',d:'2 tacos de pastor',p:22,g:['prepT'],on:true},
-    ...[['Buche',18],['Suadero',18],['Tripa',20],['Chorizo',18],['Cabeza',18],['Bistec adobado',18],['Bistec de res',22],['Lengua',30]].map(([n,p],i)=>({id:'tac'+i,c:'tacos',n:'Taco de '+n.toLowerCase(),p,g:['prepT','corte','campTaco'],on:true})),
-    {id:'volcan',c:'volcan',n:'Volcán',d:'Taco con queso',pres:carnes(40,45,45,60),g:['campVol','prepT'],on:true},
-    {id:'quesa',c:'quesa',n:'Quesadilla',pres:[O('Solo queso',30),...carnes(45,55,50,70)],g:['campQue','prepT'],on:true},
-    {id:'gringa',c:'gringa',n:'Gringa',pres:carnes(60,75,65,100),g:['campGri','prepT'],on:true},
-    {id:'torta',c:'torta',n:'Torta',pres:carnes(65,85,70,110),g:['campTor','tortExt','prepT'],on:true},
-    {id:'burrito',c:'burrito',n:'Burrito',pres:carnes(75,95,80,120),g:['campBur','burExt','prepT'],on:true},
+    ...[['Buche',18],['Suadero',18],['Tripa',20],['Chorizo',18],['Cabeza',18],['Bistec adobado',18],['Bistec de res',22],['Lengua',30]].map(([n,p],i)=>({id:'tac'+i,c:'tacos',n:'Taco de '+n.toLowerCase(),p,g:['prepT','corte'],on:true})),
+    {id:'tcampe',c:'tacos',n:'Taco campechano',d:'Elige 2 carnes',p:18,g:['campTaco','corte','prepT'],on:true},
+    {id:'volcan',c:'volcan',n:'Volcán',d:'Taco con queso',pres:carnes(40,45,45,60),g:['prepT'],on:true},
+    {id:'volcanC',c:'volcan',n:'Volcán campechano',d:'Elige 2 carnes',p:40,g:['campVol','prepT'],on:true},
+    {id:'quesa',c:'quesa',n:'Quesadilla',pres:[O('Solo queso',30),...carnes(45,55,50,70)],g:['prepT'],on:true},
+    {id:'quesaC',c:'quesa',n:'Quesadilla campechana',d:'Elige 2 carnes',p:45,g:['campQue','prepT'],on:true},
+    {id:'gringa',c:'gringa',n:'Gringa',pres:carnes(60,75,65,100),g:['prepT'],on:true},
+    {id:'gringaC',c:'gringa',n:'Gringa campechana',d:'Elige 2 carnes',p:60,g:['campGri','prepT'],on:true},
+    {id:'torta',c:'torta',n:'Torta',pres:carnes(65,85,70,110),g:['tortExt','prepT'],on:true},
+    {id:'tortaC',c:'torta',n:'Torta campechana',d:'Elige 2 carnes',p:65,g:['campTor','tortExt','prepT'],on:true},
+    {id:'burrito',c:'burrito',n:'Burrito',pres:carnes(75,95,80,120),g:['burExt','prepT'],on:true},
+    {id:'burritoC',c:'burrito',n:'Burrito campechano',d:'Elige 2 carnes',p:75,g:['campBur','burExt','prepT'],on:true},
     {id:'pkilo',c:'kilo',n:'Pastor por kilo',pres:[O('1 kg',400),O('1/2 kg',250),O('1/4 kg',130)],on:true},
     {id:'agua',c:'aguas',n:'Agua fresca',pres:[O('1/2 litro',35),O('Litro',50)],g:['aguaSab'],on:true},
     {id:'licuado',c:'aguas',n:'Licuado',pres:[O('1/2 litro',45),O('Litro',60)],g:['licSab'],on:true},
@@ -865,7 +871,7 @@ function renderModal(){
         ${p.pres.map((x,i)=>`<button class="opt" data-act="pres" data-i="${i}" aria-pressed="${m.pres===i}">${h(x.n)}<small class="num">${money(x.p)}</small></button>`).join('')}</div></div>`:''}
       ${(p.g||[]).map(gid=>{const g=grupo(gid);if(!g)return'';const sel=m.sel[gid]||[];
         return `<div class="grp"><div class="grp-h"><h3>${h(g.n)}</h3><span class="req">${g.min?`Obligatorio · elige ${g.min===g.max?g.min:`${g.min} a ${g.max}`}`:g.t==='quitar'?'Opcional':`Hasta ${g.max}`}${g.steps?' · '+stepsTxt(g):''}</span></div><div class="opts">
-        ${g.o.map((x,j)=>`<button class="opt${g.t==='quitar'?' quit':''}" data-act="opt" data-g="${gid}" data-j="${j}" aria-pressed="${sel.includes(j)}">${g.t==='quitar'?'Sin '+h(x.n).toLowerCase():h(x.n)}${!g.steps&&+x.p?`<small class="num">+${money(x.p)}</small>`:''}${g.steps&&sel.includes(j)&&stepPrice(g,sel.indexOf(j))?`<small class="num">+${money(stepPrice(g,sel.indexOf(j)))}</small>`:''}</button>`).join('')}</div></div>`}).join('')}
+        ${g.o.map((x,j)=>`<button class="opt${g.t==='quitar'?' quit':''}" data-act="opt" data-g="${gid}" data-j="${j}" aria-pressed="${sel.includes(j)}">${g.t==='quitar'?'Sin '+h(x.n).toLowerCase():h(x.n)}${!g.steps&&+x.p?`<small class="num">${g.mode==='max'?'':'+'}${money(x.p)}</small>`:''}${g.steps&&sel.includes(j)&&stepPrice(g,sel.indexOf(j))?`<small class="num">+${money(stepPrice(g,sel.indexOf(j)))}</small>`:''}</button>`).join('')}</div></div>`}).join('')}
       <label class="grp"><h3>Nota para cocina</h3><input class="in" id="m-nota" data-mf="nota" placeholder="Ej. bien cocida, salsa aparte" value="${h(m.nota)}"></label>
     </div><div class="sheet-f">
       <div class="stepper"><button data-act="mqty" data-d="-1" aria-label="Menos">−</button><span class="num" id="m-qty">${m.qty}</span><button data-act="mqty" data-d="1" aria-label="Más">+</button></div>
