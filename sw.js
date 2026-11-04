@@ -1,5 +1,5 @@
 // Guacamole POS: funciona sin internet. Cambia VERSION al publicar una actualización.
-const VERSION='gg-pos-v5';
+const VERSION='gg-pos-v7';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
