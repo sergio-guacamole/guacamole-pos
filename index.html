@@ -172,6 +172,7 @@ tr.anulada td:last-child{text-decoration:none}
 .check input{width:22px;height:22px;accent-color:var(--cheddar)}
 .mrow{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(80px,1fr)) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .orow{display:grid;grid-template-columns:minmax(0,2fr) minmax(80px,1fr) auto;gap:8px;align-items:center}
+.plato-h{font:600 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--cheddar);padding:12px 0 4px;border-bottom:1px solid var(--line)}
 .ctabs{display:flex;flex-wrap:wrap;gap:6px}
 .ctabs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:14px;line-height:1.1}
 .ctabs button b{font:600 12px/1 var(--mono);color:var(--cheddar)}
@@ -312,24 +313,27 @@ const CREP_MENU={
 };
 const DEMAS=['Pastor','Buche','Suadero','Chorizo','Cabeza','Bistec adobado'];
 const carnes=(d,b,tr,l)=>[...DEMAS.map(n=>O(n,d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)];
+const campe=(d,b,tr,l,past)=>({n:'Campechano con',t:'opcion',mode:'max',min:0,max:1,o:[...DEMAS.map(n=>O(n,n==='Pastor'&&past!=null?past:d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)]});
 const TACO_MENU={
   cats:[{id:'tacos',n:'Tacos'},{id:'volcan',n:'Volcán'},{id:'quesa',n:'Quesadillas'},{id:'gringa',n:'Gringas'},{id:'torta',n:'Tortas'},{id:'burrito',n:'Burritos'},{id:'kilo',n:'Pastor por kilo'},{id:'aguas',n:'Aguas y licuados'},{id:'coctel',n:'Cócteles'},{id:'refresco',n:'Refrescos'}],
   grupos:{
-    quitT:{n:'Quitar',t:'quitar',min:0,max:3,o:OL('Cebolla','Cilantro','Piña')},
+    prepT:{n:'Preparación',t:'opcion',min:1,max:1,def:0,o:OL('Con todo','Sin cilantro','Sin cebolla','Sin verdura')},
+    corte:{n:'Corte',t:'opcion',min:1,max:1,def:0,o:[O('Picado'),O('En trozo',5)]},
+    campTaco:campe(18,22,20,30,11),
+    campVol:campe(40,45,45,60),campQue:campe(45,55,50,70),campGri:campe(60,75,65,100),campTor:campe(65,85,70,110),campBur:campe(75,95,80,120),
     burExt:{n:'Extras',t:'extra',min:0,max:1,o:[O('Con queso',10)]},
     tortExt:{n:'Extras',t:'extra',min:0,max:1,o:[O('Especial',10)]},
     aguaSab:{n:'Sabor (combínalas)',t:'opcion',min:1,max:2,o:OL('Horchata','Guayaba','Fresa','Sandía','Manzana','Avena','Piña','Limón','Melón','Jamaica','Pepino','Chía','Papaya','Alfalfa','Naranja','Lima')},
     licSab:{n:'Sabor',t:'opcion',min:1,max:1,o:OL('Papaya','Plátano','Manzana','Fresa','Chocomilk')}
   },
   prods:[
-    {id:'tpastor',c:'tacos',n:'Pastor 2x1',d:'2 tacos de pastor',p:22,on:true},
-    ...[['Buche',18],['Suadero',18],['Tripa',20],['Chorizo',18],['Cabeza',18],['Bistec adobado',18],['Bistec de res',22],['Lengua',30]].map(([n,p],i)=>({id:'tac'+i,c:'tacos',n:'Taco de '+n.toLowerCase(),p,on:true})),
-    {id:'trozo',c:'tacos',n:'En trozo (por taco)',d:'Tacos en trozo aumentan $5',p:5,on:true},
-    {id:'volcan',c:'volcan',n:'Volcán',d:'Taco con queso',pres:carnes(40,45,45,60),on:true},
-    {id:'quesa',c:'quesa',n:'Quesadilla',pres:[O('Solo queso',30),...carnes(45,55,50,70)],g:['quitT'],on:true},
-    {id:'gringa',c:'gringa',n:'Gringa',pres:carnes(60,75,65,100),g:['quitT'],on:true},
-    {id:'torta',c:'torta',n:'Torta',pres:carnes(65,85,70,110),g:['tortExt','quitT'],on:true},
-    {id:'burrito',c:'burrito',n:'Burrito',pres:carnes(75,95,80,120),g:['burExt','quitT'],on:true},
+    {id:'tpastor',c:'tacos',n:'Pastor 2x1',d:'2 tacos de pastor',p:22,g:['prepT'],on:true},
+    ...[['Buche',18],['Suadero',18],['Tripa',20],['Chorizo',18],['Cabeza',18],['Bistec adobado',18],['Bistec de res',22],['Lengua',30]].map(([n,p],i)=>({id:'tac'+i,c:'tacos',n:'Taco de '+n.toLowerCase(),p,g:['prepT','corte','campTaco'],on:true})),
+    {id:'volcan',c:'volcan',n:'Volcán',d:'Taco con queso',pres:carnes(40,45,45,60),g:['campVol','prepT'],on:true},
+    {id:'quesa',c:'quesa',n:'Quesadilla',pres:[O('Solo queso',30),...carnes(45,55,50,70)],g:['campQue','prepT'],on:true},
+    {id:'gringa',c:'gringa',n:'Gringa',pres:carnes(60,75,65,100),g:['campGri','prepT'],on:true},
+    {id:'torta',c:'torta',n:'Torta',pres:carnes(65,85,70,110),g:['campTor','tortExt','prepT'],on:true},
+    {id:'burrito',c:'burrito',n:'Burrito',pres:carnes(75,95,80,120),g:['campBur','burExt','prepT'],on:true},
     {id:'pkilo',c:'kilo',n:'Pastor por kilo',pres:[O('1 kg',400),O('1/2 kg',250),O('1/4 kg',130)],on:true},
     {id:'agua',c:'aguas',n:'Agua fresca',pres:[O('1/2 litro',35),O('Litro',50)],g:['aguaSab'],on:true},
     {id:'licuado',c:'aguas',n:'Licuado',pres:[O('1/2 litro',45),O('Litro',60)],g:['licSab'],on:true},
@@ -337,7 +341,7 @@ const TACO_MENU={
     {id:'refresco',c:'refresco',n:'Refresco',p:35,on:true}
   ]
 };
-const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU},taco:{n:'Taquería',menu:TACO_MENU}};
+const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU},taco:{n:'Taquería',menu:TACO_MENU,aj:{mesas:15}}};
 const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review'};
 const TIPOS={mostrador:'Mostrador',mesa:'Mesa',pedido:'Pedido'};
 const METODOS={efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',rappi:'Rappi',uber:'Uber Eats'};
@@ -473,11 +477,13 @@ function buildComanda(o,lines,reimp){
   d.bold(1).para(TIPOS[o.tipo]+(o.tipo==='mesa'?'. Mesa '+(o.mesa||'?'):'')+'.').bold(0);
   if(o.tipo==='pedido'){if(o.cliente.nombre)d.para('Ref: '+o.cliente.nombre);if(o.cliente.tel)d.line('Tel: '+o.cliente.tel);if(o.cliente.dir)d.para('Entrega: '+o.cliente.dir)}
   d.line('').align('l').rule();
-  lines.forEach(l=>{
+  const grupos=o.tipo==='mesa'?[...new Set(lines.map(l=>l.plato||1))].sort((a,b)=>a-b):[null];
+  grupos.forEach(pn=>{if(pn!=null)d.bold(1).align('c').line('--- PLATO '+pn+' ---').align('l').bold(0);
+  lines.filter(l=>pn==null||(l.plato||1)===pn).forEach(l=>{
     d.bold(1).size(1);wrap(l.qty+' '+l.n,Math.floor((+S.aj.ancho||48)/2)).forEach(x=>d.line(x));d.size(0).bold(0);
     descLines(l).forEach(x=>{const neg=/^Sin /.test(x);if(neg)d.bold(1);d.para(x.toUpperCase().startsWith('SIN')?x.toUpperCase():x,'   ');if(neg)d.bold(0)});
     d.line('');
-  });
+  });});
   d.rule().feed(3).cut();
   return d;
 }
@@ -566,13 +572,16 @@ function vVender(){
   const tiles=prods.map(p=>`<button class="tile${p.on===false?' off':''}" data-act="tap" data-id="${p.id}" ${p.on===false?'disabled':''}>
       <span class="n">${h(p.n)}${p.rev?'<span class="flag">revisar</span>':''}</span>
       <span class="p num">${p.pres?'<small>desde</small>':''}${money(fromPrice(p))}</span></button>`).join('');
-  const lines=o.items.length?o.items.map(l=>`<div class="line">
+  const lineHTML=l=>`<div class="line">
       <div class="qty"><button data-act="dec" data-u="${l.uid}" aria-label="Quitar uno">−</button><span class="num">${l.qty}</span><button data-act="inc" data-u="${l.uid}" aria-label="Agregar uno">+</button></div>
       <div><button class="ln" data-act="edit" data-u="${l.uid}">${h(l.n)}</button>
         ${descLines(l).length?`<div class="ld">${descLines(l).map(h).join('<br>')}</div>`:''}
         ${l.enviado?'<span class="chip">En cocina</span>':''}</div>
-      <div class="lp num">${money(lineTotal(l))}</div></div>`).join('')
-    :`<div class="empty">Toca un producto para agregarlo.<br>La comanda y el ticket se imprimen desde aquí.</div>`;
+      <div class="lp num">${money(lineTotal(l))}</div></div>`;
+  let lines;
+  if(!o.items.length)lines=`<div class="empty">Toca un producto para agregarlo.<br>La comanda y el ticket se imprimen desde aquí.</div>`;
+  else if(o.tipo==='mesa'){const ps=[...new Set(o.items.map(l=>l.plato||1))].sort((a,b)=>a-b);lines=ps.map(n=>`<div class="plato-h">Plato ${n}</div>`+o.items.filter(l=>(l.plato||1)===n).map(lineHTML).join('')).join('')}
+  else lines=o.items.map(lineHTML).join('');
   const cliF=`<input class="in" id="f-tel" data-f="cliente.tel" inputmode="tel" placeholder="Teléfono del cliente" value="${h(o.cliente.tel)}">
       <input class="in" id="f-nom" data-f="cliente.nombre" placeholder="Nombre" value="${h(o.cliente.nombre)}">`;
   const mesaGrid=`<div class="mesas" role="group" aria-label="Mesa">${Array.from({length:+S.aj.mesas||6},(_,i)=>i+1).map(n=>{const oc=mesaOcupada(n,o.id);
@@ -594,7 +603,7 @@ function vVender(){
           <h2>${o.folio?'Folio #'+o.folio:'Nueva venta'}</h2>${o.guardada?'<span class="pill">Cuenta abierta</span>':''}</div>
         <div class="seg" role="group" aria-label="Tipo de venta">${Object.entries(TIPOS).map(([k,v])=>`<button data-act="tipo" data-t="${k}" aria-pressed="${o.tipo===k}">${v}</button>`).join('')}</div>
         ${o.tipo==='mostrador'?ctasLlevar(o):''}
-        ${fields}
+        ${fields}${o.tipo==='mesa'?platoBar(o):''}
       </div>
       <div class="lines">${lines}</div>
       <div class="cart-f">
@@ -902,8 +911,10 @@ function renderModal(){
 function stepsTxt(g){const s=g.steps||[];const parts=[];s.forEach((v,i)=>parts.push(`${i+1}º ${+v?'+'+money(v):'incluido'}`));parts.push(`más +${money(g.extra||0)} c/u`);return parts.join(', ')}
 function stepPrice(g,i){return g.steps?(i<g.steps.length?+g.steps[i]:+(g.extra||0)):+(g.o[i]?.p||0)}
 function sheetUnit(m){
-  const p=prod(m.pid);let u=p.pres?(m.pres==null?0:+p.pres[m.pres].p):+p.p;
-  for(const [gid,sel] of Object.entries(m.sel)){const g=grupo(gid);if(g)sel.forEach((j,i)=>u+=g.steps?stepPrice(g,i):(+g.o[j]?.p||0))}
+  const p=prod(m.pid);let u=p.pres?(m.pres==null?0:+p.pres[m.pres].p):+p.p;const base=u;
+  for(const [gid,sel] of Object.entries(m.sel)){const g=grupo(gid);if(!g)continue;
+    if(g.mode==='max'){if(sel.length)u+=Math.max(0,Math.max(...sel.map(j=>+g.o[j]?.p||0))-base)}
+    else sel.forEach((j,i)=>u+=g.steps?stepPrice(g,i):(+g.o[j]?.p||0))}
   return r2(u);
 }
 function closeModal(){const m=S.modal;S.modal=null;renderModal();if(m&&m.then)m.then()}
@@ -914,15 +925,21 @@ function addFromSheet(m){
   for(const gid of (p.g||[])){const g=grupo(gid);if(g&&g.min&&(m.sel[gid]||[]).length<g.min){toast('Elige '+g.n.toLowerCase());return false}}
   if(p.pres&&m.pres==null){toast('Elige la presentación');return false}
   const mods=[];
-  for(const gid of (p.g||[])){const g=grupo(gid);if(!g)continue;(m.sel[gid]||[]).forEach((j,i)=>{const x=g.o[j];if(x)mods.push({t:g.t,n:x.n,p:g.steps?stepPrice(g,i):(+x.p||0),g:g.n})})}
-  const line={uid:m.edit||uid(),pid:p.id,n:p.n,pres:p.pres?p.pres[m.pres].n:null,base:p.pres?+p.pres[m.pres].p:+p.p,mods,nota:m.nota.trim(),qty:m.qty,enviado:false,sel:m.sel,presIdx:m.pres};
+  const base0=p.pres?+p.pres[m.pres].p:+p.p;
+  for(const gid of (p.g||[])){const g=grupo(gid);if(!g)continue;const sl=m.sel[gid]||[];
+    if(g.mode==='max'){const mx=sl.length?Math.max(...sl.map(j=>+g.o[j]?.p||0)):0;sl.forEach((j,i)=>{const x=g.o[j];if(x)mods.push({t:g.t,n:x.n,p:i===0?Math.max(0,mx-base0):0,g:g.n})});continue}
+    sl.forEach((j,i)=>{const x=g.o[j];if(x&&!(g.def===j&&!+x.p))mods.push({t:g.t,n:x.n,p:g.steps?stepPrice(g,i):(+x.p||0),g:g.n})})}
+  const prevPlato=m.edit?S.orden.items.find(l=>l.uid===m.edit)?.plato:(S.orden.tipo==='mesa'?(S.orden.plato||1):undefined);
+  const line={plato:prevPlato,uid:m.edit||uid(),pid:p.id,n:p.n,pres:p.pres?p.pres[m.pres].n:null,base:p.pres?+p.pres[m.pres].p:+p.p,mods,nota:m.nota.trim(),qty:m.qty,enviado:false,sel:m.sel,presIdx:m.pres};
   const it=S.orden.items;
   if(m.edit){const i=it.findIndex(l=>l.uid===m.edit);if(i>=0)it[i]=line}else{
-    const same=it.find(l=>!l.regalo&&!l.enviado&&l.pid===line.pid&&l.pres===line.pres&&!l.nota&&!line.nota&&JSON.stringify(l.mods)===JSON.stringify(line.mods));
+    const same=it.find(l=>!l.regalo&&!l.enviado&&l.plato===line.plato&&l.pid===line.pid&&l.pres===line.pres&&!l.nota&&!line.nota&&JSON.stringify(l.mods)===JSON.stringify(line.mods));
     if(same)same.qty+=line.qty;else it.push(line);
   }
   return true;
 }
+function platoBar(o){const mx=Math.max(1,o.plato||1,...o.items.map(l=>l.plato||1));const cur=o.plato||1;
+  return `<div class="ctabs" role="group" aria-label="Plato o persona"><span class="label" style="align-self:center">Agregar a</span>${Array.from({length:mx},(_,i)=>i+1).map(n=>`<button data-act="plato" data-n="${n}" aria-pressed="${cur===n}">Plato ${n}</button>`).join('')}<button data-act="plato" data-n="${mx+1}">＋ Plato</button></div>`}
 function ctasLlevar(o){
   const ab=S.cuentas.filter(c=>c.tipo==='mostrador').sort((a,b)=>a.abierta-b.abierta);
   if(!ab.length&&!o.guardada)return '';
@@ -1001,7 +1018,7 @@ document.addEventListener('click',async e=>{
     case 'cat':S.cat=b.dataset.id;render();break;
     case 'tap':{const p=prod(b.dataset.id);
       if(!p.pres&&!(p.g||[]).length){addFromSheet({pid:p.id,pres:null,sel:{},nota:'',qty:1});render();toast(p.n+' agregado');}
-      else{S.modal={k:'prod',pid:p.id,pres:p.pres?0:null,sel:{},nota:'',qty:1};renderModal()}break}
+      else{const sel={};(p.g||[]).forEach(gid=>{const g=grupo(gid);if(g&&g.def!=null)sel[gid]=[g.def]});S.modal={k:'prod',pid:p.id,pres:p.pres?0:null,sel,nota:'',qty:1};renderModal()}break}
     case 'pres':m.pres=+b.dataset.i;renderModal();break;
     case 'opt':{const g=grupo(b.dataset.g),j=+b.dataset.j,sel=m.sel[b.dataset.g]=m.sel[b.dataset.g]||[];
       const i=sel.indexOf(j);
@@ -1096,6 +1113,7 @@ document.addEventListener('click',async e=>{
       if(!await guardarActual())break;S.orden={...newOrden(),...clone(c),guardada:true};render();break}
     case 'nueva':{if(!o.guardada&&!o.items.length)break;if(!await guardarActual())break;
       S.orden=newOrden('mostrador');render();toast('Cuenta guardada. Nueva venta para llevar');break}
+    case 'plato':o.plato=+b.dataset.n;render();break;
     case 'mesa':{const n=b.dataset.n,c=mesaOcupada(n,o.id);
       if(c){if(o.items.length&&!o.guardada){toast('Mesa '+n+' ocupada. Primero guarda o cobra la venta actual');break}
         S.orden={...newOrden(),...clone(c),guardada:true};render();toast('Cuenta de Mesa '+n+' abierta');break}
@@ -1119,7 +1137,7 @@ document.addEventListener('click',async e=>{
     case 'restore-no':S.restore=null;render();break;
     case 'restore-si':{const o=S.restore;S.restore=null;await Store.restore(o);toast('Respaldo restaurado');render();break}
     case 'tpl':S.tpl=b.dataset.k;render();break;
-    case 'tpl-si':{const tp=PLANTILLAS[b.dataset.k];S.tpl=null;await Store.set('config','menu',clone(tp.menu));S.menu=clone(tp.menu);S.cat=S.menu.cats[0].id;S.menuDraft=null;toast('Menú de '+tp.n+' cargado');render();break}
+    case 'tpl-si':{const tp=PLANTILLAS[b.dataset.k];S.tpl=null;await Store.set('config','menu',clone(tp.menu));if(tp.aj){const a2={...S.aj,...tp.aj};await Store.set('config','ajustes',a2);S.aj=a2;S.ajDraft=null}S.menu=clone(tp.menu);S.cat=S.menu.cats[0].id;S.menuDraft=null;toast('Menú de '+tp.n+' cargado');render();break}
     case 'regalo':{if(o.items.some(l=>l.regalo))break;
       o.items.push({uid:uid(),pid:'clasica',n:'Hamburguesa Clásica',pres:'Normal',base:0,mods:[],nota:'',qty:1,enviado:false,regalo:true});
       render();toast('Clásica de regalo agregada');break}
