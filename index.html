@@ -40,7 +40,7 @@ button{cursor:pointer;border:0;background:none}
 .app{display:grid;grid-template-columns:88px minmax(0,1fr);gap:16px;height:100%;box-sizing:border-box;
   padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .rail{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;overflow:auto}
-.brand{font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-align:center;color:var(--cheddar);padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.brand{overflow-wrap:anywhere;hyphens:auto;font:700 14px/1.1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-align:center;color:var(--cheddar);padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:10px;color:var(--muted);font:600 13px/1 var(--body)}
 .rail button svg{width:26px;height:26px}
 .rail button[aria-current="page"]{background:var(--panel2);color:var(--cheddar)}
@@ -310,7 +310,34 @@ const CREP_MENU={
     ...[['Pan francés','Pan de caja, fruta, maple y azúcar glass',145],['Golden bite','Mixmoras, queso crema y crema de cacahuate',135],['Hotcrêpe','3 frutas del día, mantequilla y miel maple',135],['La Paris','Mantequilla, mascabado y canela',60],['Banane','Guayaba, nuez, queso crema y azúcar glass',125],['Pomm','Manzana, canela, nuez, queso crema y azúcar glass',135],['Bicho','Plátano, mixmoras, almendra, queso crema y azúcar glass',135],['Topic','Piña, coco, lechera, queso crema y Controy',135],['Isla bonita','Duraznos, kiwi, queso crema y lechera',135],['Miguel Ángel','Cajeta, plátano, nuez y Kahlúa',135],['Dulce Polly','Nutella, fresas, nuez, queso crema y Kahlúa',145],['Martán','Duraznos, coco, queso crema y rompope',125],['Bombom','Durazno, nuez, almendra, lechera y Controy',135],['Selva negra','Chocosemi, mixmoras, almendra, queso crema y azúcar glass',145],['Chocobanane','Oreo, plátano, chocosemi, queso crema y Nutella',145],['Blueblanc','Chocoblanco, mixmoras, queso crema y azúcar glass',125]].map(([n,d,p],i)=>({id:'ed'+i,c:'edul',n,d,p,g:['licor'],on:true}))
   ]
 };
-const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU}};
+const DEMAS=['Pastor','Buche','Suadero','Chorizo','Cabeza','Bistec adobado'];
+const carnes=(d,b,tr,l)=>[...DEMAS.map(n=>O(n,d)),O('Bistec de res',b),O('Tripa',tr),O('Lengua',l)];
+const TACO_MENU={
+  cats:[{id:'tacos',n:'Tacos'},{id:'volcan',n:'Volcán'},{id:'quesa',n:'Quesadillas'},{id:'gringa',n:'Gringas'},{id:'torta',n:'Tortas'},{id:'burrito',n:'Burritos'},{id:'kilo',n:'Pastor por kilo'},{id:'aguas',n:'Aguas y licuados'},{id:'coctel',n:'Cócteles'},{id:'refresco',n:'Refrescos'}],
+  grupos:{
+    quitT:{n:'Quitar',t:'quitar',min:0,max:3,o:OL('Cebolla','Cilantro','Piña')},
+    burExt:{n:'Extras',t:'extra',min:0,max:1,o:[O('Con queso',10)]},
+    tortExt:{n:'Extras',t:'extra',min:0,max:1,o:[O('Especial',10)]},
+    aguaSab:{n:'Sabor (combínalas)',t:'opcion',min:1,max:2,o:OL('Horchata','Guayaba','Fresa','Sandía','Manzana','Avena','Piña','Limón','Melón','Jamaica','Pepino','Chía','Papaya','Alfalfa','Naranja','Lima')},
+    licSab:{n:'Sabor',t:'opcion',min:1,max:1,o:OL('Papaya','Plátano','Manzana','Fresa','Chocomilk')}
+  },
+  prods:[
+    {id:'tpastor',c:'tacos',n:'Pastor 2x1',d:'2 tacos de pastor',p:22,on:true},
+    ...[['Buche',18],['Suadero',18],['Tripa',20],['Chorizo',18],['Cabeza',18],['Bistec adobado',18],['Bistec de res',22],['Lengua',30]].map(([n,p],i)=>({id:'tac'+i,c:'tacos',n:'Taco de '+n.toLowerCase(),p,on:true})),
+    {id:'trozo',c:'tacos',n:'En trozo (por taco)',d:'Tacos en trozo aumentan $5',p:5,on:true},
+    {id:'volcan',c:'volcan',n:'Volcán',d:'Taco con queso',pres:carnes(40,45,45,60),on:true},
+    {id:'quesa',c:'quesa',n:'Quesadilla',pres:[O('Solo queso',30),...carnes(45,55,50,70)],g:['quitT'],on:true},
+    {id:'gringa',c:'gringa',n:'Gringa',pres:carnes(60,75,65,100),g:['quitT'],on:true},
+    {id:'torta',c:'torta',n:'Torta',pres:carnes(65,85,70,110),g:['tortExt','quitT'],on:true},
+    {id:'burrito',c:'burrito',n:'Burrito',pres:carnes(75,95,80,120),g:['burExt','quitT'],on:true},
+    {id:'pkilo',c:'kilo',n:'Pastor por kilo',pres:[O('1 kg',400),O('1/2 kg',250),O('1/4 kg',130)],on:true},
+    {id:'agua',c:'aguas',n:'Agua fresca',pres:[O('1/2 litro',35),O('Litro',50)],g:['aguaSab'],on:true},
+    {id:'licuado',c:'aguas',n:'Licuado',pres:[O('1/2 litro',45),O('Litro',60)],g:['licSab'],on:true},
+    ...[['Biónico',75],['Escamocha',65],['Yogurt con fruta',75],['Fresas con crema',55],['Manzana con crema',55]].map(([n,p],i)=>({id:'coc'+i,c:'coctel',n,p,on:true})),
+    {id:'refresco',c:'refresco',n:'Refresco',p:35,on:true}
+  ]
+};
+const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU},taco:{n:'Taquería',menu:TACO_MENU}};
 const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review'};
 const TIPOS={mostrador:'Mostrador',mesa:'Mesa',pedido:'Pedido'};
 const METODOS={efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',rappi:'Rappi',uber:'Uber Eats'};
