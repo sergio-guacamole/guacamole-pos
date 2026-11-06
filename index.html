@@ -766,7 +766,14 @@ function vCaja(){
       ${movs.length?`<div class="tablewrap"><table><thead><tr><th>Hora</th><th>Concepto</th><th>Tipo</th><th class="r">Monto</th></tr></thead><tbody>
         ${movs.map(m=>`<tr><td class="num">${S.rango==='hoy'||S.rango==='ayer'?'':fecha(m.t)+' '}${hora(m.t)}</td><td>${h(m.concepto)}</td><td>${m.tipo==='entrada'?'Entrada':'Salida'}</td><td class="r num" style="color:${m.tipo==='entrada'?'var(--pickle)':'var(--ketchup)'}">${m.tipo==='entrada'?'+':'−'}${money(m.monto)}</td></tr>`).join('')}</tbody></table></div>`
       :`<p class="muted" style="margin:0">Sin movimientos en este rango.</p>`}
-    </div></div>`;
+    </div>
+    ${(()=>{const vs=S.ventas.filter(v=>v.pagada>=A&&v.pagada<B).sort((a,b)=>b.pagada-a.pagada);return `<div class="panel"><div class="page-h"><h3>Ventas cobradas</h3><span class="muted">${ok.length} ticket${ok.length===1?'':'s'}</span></div>
+      <p class="muted" style="margin:0">Si la impresora estaba apagada o se atoró el papel, vuelve a imprimir el ticket o la comanda desde aquí.</p>
+      ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Folio</th><th>Hora</th><th>Venta</th><th>Pago</th><th class="r">Total</th><th></th></tr></thead><tbody>
+      ${vs.map(v=>`<tr class="${v.estado==='anulada'?'anulada':''}"><td class="num">#${v.folio}</td><td class="num">${S.rango==='hoy'||S.rango==='ayer'?'':fecha(v.pagada)+' '}${hora(v.pagada)}</td><td>${h(ordenLabel(v))}</td><td>${METODOS[v.pago?.metodo]||'-'}</td><td class="r num">${money(v.total)}</td>
+        <td class="r" style="white-space:nowrap">${v.estado==='anulada'?'<span class="pill">Anulada</span>':`<button class="btn small" data-act="reimp" data-id="${v.id}">Ticket</button> <button class="btn small" data-act="reimp-com" data-id="${v.id}">Comanda</button>`}</td></tr>`).join('')}
+      </tbody></table></div>`:'<p class="muted" style="margin:0">Aún no hay ventas cobradas en este rango.</p>'}</div>`})()}
+  </div>`;
 }
 
 /* ---------- Clientes y lealtad ---------- */
@@ -1125,6 +1132,7 @@ document.addEventListener('click',async e=>{
     case 'anular-si':{const v=S.ventas.find(x=>x.id===b.dataset.id);S.anular=null;
       try{await Store.set('ventas',v.id,{...v,estado:'anulada',anuladaEn:Date.now()});toast('Venta #'+v.folio+' anulada')}catch(e){toast('No se pudo anular: revisa la conexión')}
       render();break}
+    case 'reimp-com':{const v=S.ventas.find(x=>x.id===b.dataset.id);if(v)openPrint('Comanda #'+v.folio+' (reimpresión)',buildComanda(v,v.items,true));break}
     case 'reimp':{const v=S.ventas.find(x=>x.id===b.dataset.id);openPrint('Copia ticket #'+v.folio,buildTicket(v,{copia:true}));break}
     case 'corte':{
       const [hA,hB]=rango('hoy');const hoy=S.ventas.filter(v=>v.estado!=='anulada'&&v.pagada>=hA&&v.pagada<hB);
