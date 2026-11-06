@@ -349,7 +349,7 @@ const TACO_MENU={
   ]
 };
 const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU},taco:{n:'Taquería',menu:TACO_MENU,aj:{mesas:15}}};
-const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review',responsable:'Sergio Rivera Avalos',encab:'',pieExtra:'',tFolio:true,tDir:true,tTel:true,tTipo:true,logoOn:false,logo:null,logoSrc:null,logoEsc:60,comCopias:1,comGrande:true,premioPid:'clasica'};
+const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review',responsable:'Sergio Rivera Avalos',encab:'',pieExtra:'',tFolio:true,tDir:true,tTel:true,tTipo:true,logoOn:false,logo:null,logoSrc:null,logoEsc:60,comCopias:1,comGrande:true,comandaPrimero:true,premioPid:'clasica'};
 const INST_HASH='ec4c9a8cfff4d2dc2b3db156263a306f1187041727ceb235694e012c51a1229f';
 const BLANK_AJ={negocio:'Mi negocio',dir:'',tel:'',responsable:'',encab:'',pie:'¡Gracias por tu compra!',pieExtra:'',qr:false,qrUrl:'',logoOn:false,logo:null,logoSrc:null,avisoCorto:'Usamos tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.'};
 const premioN=(a=S.aj)=>(S.menu.prods.find(p=>p.id===a.premioPid)||S.menu.prods.find(p=>p.id==='clasica')||{n:'regalo'}).n;
@@ -561,8 +561,9 @@ const TK_SAMPLE=()=>({folio:123,tipo:'mesa',mesa:4,pagada:Date.now(),cliente:{},
 function updTkPv(){const el=$('#tk-pv');if(!el||!S.ajDraft)return;try{el.innerHTML=pvHTML(buildTicket(TK_SAMPLE(),{aj:S.ajDraft}).preview(),S.ajDraft)}catch(e){}}
 function openPrint(titulo,doc,then){
   const url=doc.url();
+  if(S.aj.auto){try{if(window.top===window){location.href=url}else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}}catch(e){}
+    if(!/^Ticket #/.test(titulo)){toast(titulo+' enviado a la impresora');if(then)then();return}}
   S.modal={k:'print',titulo,pv:doc.preview(),url,then};
-  if(S.aj.auto){try{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}catch(e){}}
   renderModal();
 }
 
@@ -617,7 +618,7 @@ function vVender(){
     :`<div class="fields">${cliF}
       <input class="in wide" id="f-dir" data-f="cliente.dir" placeholder="Dirección" value="${h(o.cliente.dir)}">
       <input class="in" id="f-env" data-f="envio" inputmode="decimal" placeholder="Envío $" value="${o.envio||''}"></div>`)+`<div id="fid">${fidHTML(o)}</div>`;
-  const t=totalOf(o),hasItems=o.items.length>0;
+  const t=totalOf(o),hasItems=o.items.length>0,pend=S.aj.comandaPrimero!==false&&o.items.some(l=>!l.enviado&&!l.regalo);
   return `${banner()}<div class="vender">
     <section class="catalog" aria-label="Productos">
       <div class="tabs" role="group" aria-label="Categorías">${cats.map(c=>`<button data-act="cat" data-id="${c.id}" aria-pressed="${S.cat===c.id}">${h(c.n)}</button>`).join('')}</div>
@@ -636,9 +637,9 @@ function vVender(){
         ${o.tipo==='pedido'&&+o.envio?`<div class="sum"><span>Subtotal</span><span class="num">${money(subtotal(o))}</span></div><div class="sum"><span>Envío</span><span class="num">${money(o.envio)}</span></div>`:''}
         <div class="total"><span>Total</span><span class="num" id="cart-total">${money(t)}</span></div>
         <div class="actions">
-          <button class="btn" data-act="comanda" ${hasItems?'':'disabled'}>Comanda</button>
+          <button class="btn ${pend?'primary':''}" data-act="comanda" ${hasItems?'':'disabled'}>${pend?'Mandar comanda':'Comanda'}</button>
           <button class="btn" data-act="guardar" ${hasItems?'':'disabled'}>${o.tipo==='mostrador'?'Pagar después':'Guardar cuenta'}</button>
-          <button class="btn primary big full" data-act="cobrar" ${hasItems?'':'disabled'}>Cobrar ${money(t)}</button>
+          <button class="btn primary big full" data-act="cobrar" ${hasItems&&!pend?'':'disabled'}>${pend?'Primero manda la comanda':'Cobrar '+money(t)}</button>
         </div>
         ${(hasItems||o.guardada)?`<button class="linkbtn" data-act="limpiar">${S.limpiar?'¿Seguro? Toca otra vez para descartar':'Descartar esta venta'}</button>`:''}
       </div>
@@ -847,7 +848,8 @@ function vAjustes(){
       <p class="muted" style="margin:4px 0 0;font-size:13px">Mejor un logo en blanco y negro con fondo blanco. Los colores se convierten a negro.</p></div>
     <div><span class="label">Comanda de cocina</span><div class="form">
       <label><span class="label">Copias</span><select class="in" data-a="comCopias">${[1,2,3].map(n=>`<option value="${n}" ${+a.comCopias===n?'selected':''}>${n}</option>`).join('')}</select></label></div>
-      <label class="check"><input type="checkbox" data-ac="comGrande" ${a.comGrande!==false?'checked':''}>Productos en letra grande</label></div>
+      <label class="check"><input type="checkbox" data-ac="comGrande" ${a.comGrande!==false?'checked':''}>Productos en letra grande</label>
+      <label class="check"><input type="checkbox" data-ac="comandaPrimero" ${a.comandaPrimero!==false?'checked':''}>Mandar comanda antes de poder cobrar</label></div>
     <div><button class="btn" data-act="test-ticket">Imprimir ticket de ejemplo</button></div>
     </div>
     <div style="min-width:0"><span class="label">Vista previa</span><div class="pre-wrap" style="max-height:none"><pre class="ticket" id="tk-pv">${pvHTML(buildTicket(TK_SAMPLE(),{aj:a}).preview(),a)}</pre></div></div></div></div>
@@ -948,7 +950,7 @@ function renderModal(){
       <div class="pre-wrap"><pre class="ticket">${pvHTML(m.pv)}</pre></div>
       <p class="muted" style="margin:0;font-size:14px">${S.aj.auto?'Ya se mandó a la impresora. Toca “Imprimir de nuevo” solo si no salió.':'Si no imprime, revisa que RawBT esté instalada y apunte a la IP de tu impresora.'}</p>
     </div><div class="sheet-f"><button class="btn ${S.aj.auto?'primary big':''}" data-act="close">Listo</button><span class="grow"></span>
-      <a class="btn ${S.aj.auto?'':'primary big'}" href="${h(m.url)}" target="_blank" rel="noopener">${S.aj.auto?'Imprimir de nuevo':'Imprimir'}</a></div></div>`;
+      <a class="btn ${S.aj.auto?'':'primary big'}" href="${h(m.url)}" ${window.top===window?'':'target="_blank" rel="noopener"'}>${S.aj.auto?'Imprimir de nuevo':'Imprimir'}</a></div></div>`;
   }
   el.innerHTML=`<div class="scrim" data-act="scrim">${inner}</div>`;
 }
@@ -1104,6 +1106,7 @@ document.addEventListener('click',async e=>{
       try{await saveCuenta(o);S.orden=newOrden();render();toast('Cuenta guardada en Cuentas')}catch(e){}
       break;
     case 'cobrar':
+      if(S.aj.comandaPrimero!==false&&o.items.some(l=>!l.enviado&&!l.regalo)){toast('Primero manda la comanda');break}
       if(o.tipo!=='mostrador'&&!validOrden(o))break;
       S.modal={k:'cobro',metodo:'efectivo',recibido:''};renderModal();break;
     case 'metodo':m.metodo=b.dataset.m;renderModal();break;
