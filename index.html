@@ -174,6 +174,7 @@ tr.anulada td:last-child{text-decoration:none}
 .mrow{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(80px,1fr)) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .orow{display:grid;grid-template-columns:minmax(0,2fr) minmax(80px,1fr) auto;gap:8px;align-items:center}
 .modo{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--bg)}.modo>div{display:flex;flex-direction:column;min-width:0}.modo-b{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.user-chip{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-top:1px solid var(--line);font-size:12px;text-align:center}.user-chip small{color:var(--muted)}
 .plato-h{font:600 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--cheddar);padding:12px 0 4px;border-bottom:1px solid var(--line)}
 .ctabs{display:flex;flex-wrap:wrap;gap:6px}
 .ctabs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:14px;line-height:1.1}
@@ -580,9 +581,9 @@ function openPrint(titulo,doc,then){
 function renderRail(){
   const n=S.cuentas.length;
   $('#rail').innerHTML=`<div class="brand">${h(S.aj.negocio||'Mi negocio')}</div>`+
-    [['vender','Vender'],['cuentas','Cuentas'],['caja','Caja'],['clientes','Clientes'],['reportes','Reportes'],['costeo','Costeo'],['menu','Menú'],['ajustes','Ajustes']].map(([k,t])=>
+    (staffOn()&&!S.user?[]:[['vender','Vender'],['cuentas','Cuentas'],['caja','Caja'],['clientes','Clientes'],['reportes','Reportes'],['costeo','Costeo'],['menu','Menú'],['ajustes','Ajustes']].filter(([k])=>can(k))).map(([k,t])=>
     `<button data-act="nav" data-v="${k}" ${S.view===k?'aria-current="page"':''}>${svg(k)}${t}${k==='cuentas'&&n?`<span class="badge num">${n}</span>`:''}</button>`).join('')+
-    `<button data-act="cajon" class="rail-cajon">${svg('abrir')}Abrir cajón</button>`;
+    (staffOn()&&(!S.user||S.user.rol==='mesero')?'':`<button data-act="cajon" class="rail-cajon">${svg('abrir')}Abrir cajón</button>`)+userChip();
 }
 function banner(){
   const p=Pend.get().length;let out='';
@@ -598,6 +599,8 @@ function render(){
   renderRail();
   const m=$('#main');
   if(S.lic&&(S.lic.state==='off'||S.licShow)){m.innerHTML=vActivar();return}
+  if(staffOn()&&!S.user){m.innerHTML=vLogin();return}
+  if(staffOn()&&!can(S.view)){S.view=ROLES[S.user.rol].v[0]}
   m.innerHTML=licBanner()+({vender:vVender,cuentas:vCuentas,caja:vCaja,clientes:vClientes,reportes:vReportes,menu:vMenu,costeo:vCosteo,ajustes:vAjustes}[S.view])();
 }
 document.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending)render()},50));
@@ -645,7 +648,7 @@ function vVender(){
         <div class="actions">
           <button class="btn ${pend?'primary':''}" data-act="comanda" ${hasItems?'':'disabled'}>${pend?'Mandar comanda':'Comanda'}</button>
           <button class="btn" data-act="guardar" ${hasItems?'':'disabled'}>${o.tipo==='mostrador'?'Pagar después':'Guardar cuenta'}</button>
-          <button class="btn primary big full" data-act="cobrar" ${hasItems&&!pend?'':'disabled'}>${pend?'Primero manda la comanda':'Cobrar '+money(t)}</button>
+          ${canCobrar()?`<button class="btn primary big full" data-act="cobrar" ${hasItems&&!pend?'':'disabled'}>${pend?'Primero manda la comanda':'Cobrar '+money(t)}</button>`:`<button class="btn big full" disabled>Cobra caja · ${money(t)}</button>`}
         </div>
         ${(hasItems||o.guardada)?`<button class="linkbtn" data-act="limpiar">${S.limpiar?'¿Seguro? Toca otra vez para descartar':'Descartar esta venta'}</button>`:''}
       </div>
@@ -753,7 +756,7 @@ function vReportes(){
     </div>
     ${(()=>{const bl=S.bit.filter(x=>x.t>=A&&x.t<B).sort((a,b)=>b.t-a.t);return `<div class="panel"><div class="page-h"><h3>Cancelaciones y acciones con PIN</h3><span class="muted">${bl.length}</span></div>
       ${bl.length?`<div class="tablewrap"><table><thead><tr><th>Hora</th><th>Acción</th><th>Detalle</th><th>Motivo</th><th class="r">Monto</th></tr></thead><tbody>
-      ${bl.map(x=>`<tr><td class="num">${S.rango==='hoy'||S.rango==='ayer'?'':fecha(x.t)+' '}${hora(x.t)}</td><td>${h(x.accion)}${x.folio?' #'+x.folio:''}</td><td>${h(x.detalle||'')}</td><td>${h(x.motivo||'—')}</td><td class="r num">${x.monto?money(x.monto):''}</td></tr>`).join('')}</tbody></table></div>`
+      ${bl.map(x=>`<tr><td class="num">${S.rango==='hoy'||S.rango==='ayer'?'':fecha(x.t)+' '}${hora(x.t)}</td><td>${h(x.accion)}${x.folio?' #'+x.folio:''}</td><td>${h(x.detalle||'')}${x.pidio||x.autorizo?`<br><small class="muted">${x.pidio?'Pidió: '+h(x.pidio):''}${x.pidio&&x.autorizo?' · ':''}${x.autorizo?'Autorizó: '+h(x.autorizo):''}</small>`:''}</td><td>${h(x.motivo||'—')}</td><td class="r num">${x.monto?money(x.monto):''}</td></tr>`).join('')}</tbody></table></div>`
       :'<p class="muted" style="margin:0">Sin cancelaciones en este rango.</p>'}</div>`})()}
     <div class="panel"><div class="page-h"><h3>Tickets</h3><button class="btn small" data-act="csv" ${enR.length?'':'disabled'}>Descargar Excel (CSV)</button></div>
       ${enR.length?`<div class="tablewrap"><table><thead><tr><th>Folio</th><th>Hora</th><th>Venta</th><th>Pago</th><th class="r">Total</th><th></th></tr></thead><tbody>
@@ -792,6 +795,7 @@ function vCaja(){
         ${movs.map(m=>`<tr><td class="num">${S.rango==='hoy'||S.rango==='ayer'?'':fecha(m.t)+' '}${hora(m.t)}</td><td>${h(m.concepto)}</td><td>${m.tipo==='entrada'?'Entrada':'Salida'}</td><td class="r num" style="color:${m.tipo==='entrada'?'var(--pickle)':'var(--ketchup)'}">${m.tipo==='entrada'?'+':'−'}${money(m.monto)}</td></tr>`).join('')}</tbody></table></div>`
       :`<p class="muted" style="margin:0">Sin movimientos en este rango.</p>`}
     </div>
+    ${staffOn()&&canCorte()&&S.user.rol!=='dueno'?`<div class="panel"><h3>Corte de caja</h3><p class="muted" style="margin:0">Cierra el día: imprime el corte y descarga el respaldo.</p><div><button class="btn primary" data-act="corte">Guardar corte e imprimir</button></div></div>`:''}
     ${(()=>{const vs=S.ventas.filter(v=>v.pagada>=A&&v.pagada<B).sort((a,b)=>b.pagada-a.pagada);return `<div class="panel"><div class="page-h"><h3>Ventas cobradas</h3><span class="muted">${ok.length} ticket${ok.length===1?'':'s'}</span></div>
       <p class="muted" style="margin:0">Si la impresora estaba apagada o se atoró el papel, vuelve a imprimir el ticket o la comanda desde aquí.</p>
       ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Folio</th><th>Hora</th><th>Venta</th><th>Pago</th><th class="r">Total</th><th></th></tr></thead><tbody>
@@ -849,6 +853,22 @@ function normMenu(raw){
     const g=(x.g||[]).filter(k=>{if(grupos[k])return true;warn.push(q.n+': grupo '+k+' no existe');return false});if(g.length)q.g=g;if(x.rev)q.rev=true;return q});
   if(!prods.length)throw new Error('El archivo no trae productos');return {cats,grupos,prods,warn};
 }
+/* ===== Personal y puestos ===== */
+const ROLES={mesero:{n:'Mesero',v:['vender','cuentas']},caja:{n:'Caja',v:['vender','cuentas','caja','clientes']},admin:{n:'Administrador',v:['vender','cuentas','caja','clientes','menu']},dueno:{n:'Dueño',v:['vender','cuentas','caja','clientes','reportes','costeo','menu','ajustes']}};
+const staffOn=()=>(S.aj.personal||[]).length>0;
+const rol=()=>S.user?S.user.rol:'dueno';
+const can=v=>!staffOn()||(S.user&&ROLES[S.user.rol].v.includes(v));
+const canCobrar=()=>!staffOn()||(S.user&&S.user.rol!=='mesero');
+const canCorte=()=>!staffOn()||(S.user&&(S.user.rol==='admin'||S.user.rol==='dueno'));
+async function staffByPin(pin){const hh=await sha(String(pin||''));const p=(S.aj.personal||[]).find(x=>x.pinH===hh);if(p)return {id:p.id,n:p.n,rol:p.rol};if(S.aj.pinHash&&hh===S.aj.pinHash)return {id:'dueno',n:'Dueño',rol:'dueno'};return null}
+async function saveAjNow(patch){const a2={...S.aj,...patch};await Store.set('config','ajustes',a2);S.aj=a2;if(S.ajDraft)Object.assign(S.ajDraft,patch)}
+function vLogin(){const n=(S.kp||'').length;
+  return `<div class="page" style="max-width:420px;margin:0 auto;padding-top:24px"><div class="panel" style="align-items:center;gap:16px;text-align:center">
+    <h1 style="margin:0">${h(S.aj.negocio||'Kaja')}</h1><p class="muted" style="margin:0">Escribe tu PIN para entrar</p>
+    <div style="display:flex;gap:12px;min-height:22px" aria-label="${n} dígitos">${Array.from({length:Math.max(4,n)},(_,i)=>`<span style="width:16px;height:16px;border-radius:50%;border:2px solid var(--cheddar);background:${i<n?'var(--cheddar)':'transparent'}"></span>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,72px);gap:10px">${['1','2','3','4','5','6','7','8','9','⌫','0','OK'].map(d=>`<button class="btn ${d==='OK'?'primary':''}" style="height:64px;font-size:22px" data-act="kp" data-d="${d}" aria-label="${d==='⌫'?'Borrar':d==='OK'?'Entrar':d}">${d}</button>`).join('')}</div>
+  </div></div>`}
+function userChip(){if(!staffOn()||!S.user)return '';return `<div class="user-chip"><b>${h(S.user.n)}</b><small>${ROLES[S.user.rol].n}</small><button class="btn small" data-act="lock" aria-label="Cerrar sesión">Salir</button></div>`}
 /* ===== Licencia ===== */
 const LIC_PUB={"kty":"EC","crv":"P-256","x":"ZN-YqmpPksZhhcKMc34-_LAGHek_W84BZB3mkyY10Jc","y":"u6ZvSZBBEL_fYpNTF1Fba9Bp1uCC2NSTlaj_fy4FWZA"};
 const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
@@ -1052,10 +1072,14 @@ function vAjustes(){
       <p style="margin:0">${S.lic?.state==='ok'?(S.lic.exp?'Activa hasta el <b>'+fecha(S.lic.exp)+'</b>':'Activa <b>sin vencimiento</b>'+(S.lic.inst?' (activada por el instalador)':'')):S.lic?.state==='grace'?'Sin activar · quedan '+S.lic.days+' días':'Sin activar'} · Código del equipo: <b class="num">${fmtDev(devCode())}</b></p>
       <div><button class="btn small" data-act="lic-show">Poner otra clave</button></div>
     </div>
-    <div class="panel"><h3>Meseros</h3>
-      <p class="muted" style="margin:0">Al abrir una mesa se elige quién la atiende. En Reportes verás las ventas de cada uno. Recuerda tocar “Guardar ajustes”.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${(a.meseros||[]).map(n=>`<span class="chip" style="display:inline-flex;gap:6px;align-items:center">${h(n)}<button class="btn small" data-act="mesero-del" data-v="${h(n)}" aria-label="Quitar ${h(n)}">✕</button></span>`).join('')||'<span class="muted">Sin meseros todavía.</span>'}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="in" id="mesero-n" placeholder="Nombre del mesero" style="max-width:280px"><button class="btn" data-act="mesero-add">Agregar</button></div>
+    <div class="panel"><h3>Personal y puestos</h3>
+      <p class="muted" style="margin:0">Cada persona entra con su propio PIN y solo ve lo de su puesto. <b>Mesero:</b> vender y cuentas, no cobra. <b>Caja:</b> además cobra, caja y clientes. <b>Administrador:</b> además menú, corte y autoriza cancelaciones. <b>Dueño:</b> todo.${staffOn()?'':' Al agregar a la primera persona, la tablet empezará a pedir PIN para entrar.'}</p>
+      ${(a.personal||[]).length?`<div class="tablewrap"><table><thead><tr><th>Nombre</th><th>Puesto</th><th></th></tr></thead><tbody>${(a.personal||[]).map(x=>`<tr><td>${h(x.n)}</td><td>${ROLES[x.rol]?.n||x.rol}</td><td class="r" style="white-space:nowrap"><button class="btn small" data-act="st-pin" data-id="${x.id}">Cambiar PIN</button> <button class="btn small" data-act="st-del" data-id="${x.id}">Quitar</button></td></tr>`).join('')}</tbody></table></div>`:''}
+      <div class="form"><label><span class="label">Nombre</span><input class="in" id="st-n" placeholder="Ej. Ana"></label>
+        <label><span class="label">Puesto</span><select class="in" id="st-r">${Object.entries(ROLES).map(([k,r])=>`<option value="${k}">${r.n}</option>`).join('')}</select></label>
+        <label><span class="label">PIN (4 a 6 números)</span><input class="in num" id="st-p" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+        <div style="align-self:end"><button class="btn" data-act="st-add">Agregar</button></div></div>
+      <label><span class="label">Bloquear la tablet si nadie la usa por</span><select class="in" style="max-width:220px" id="st-lock">${[[2,'2 minutos'],[5,'5 minutos'],[10,'10 minutos'],[15,'15 minutos'],[0,'Nunca']].map(([v,n])=>`<option value="${v}" ${(a.lockMin??5)==v?'selected':''}>${n}</option>`).join('')}</select></label>
     </div>
     <div class="panel"><h3>Mesas</h3><div class="form">
       <label><span class="label">Número de mesas</span><input class="in num" id="aj-mesas" data-a="mesas" inputmode="numeric" value="${h(a.mesas)}"></label></div></div>
@@ -1132,14 +1156,16 @@ function renderModal(){
       <div><h2>${h(m.titulo)}</h2>${m.detalle?`<p class="muted" style="margin:4px 0 0">${h(m.detalle)}${m.monto?' · '+money(m.monto):''}</p>`:''}</div>
       ${m.motivo?`<div class="grp"><span class="label">Motivo</span><div class="quick">${razones.map(r=>`<button class="btn small" data-act="auth-mot" data-v="${r}" ${m.mot===r?'style="border-color:var(--cheddar);color:var(--cheddar)"':''}>${r}</button>`).join('')}</div>
         <input class="in" id="a-mot" data-am="1" placeholder="Otro motivo" value="${h(m.mot)}"></div>`:''}
-      ${S.aj.pinHash?`<label class="grp"><span class="label">PIN del dueño</span><input class="in num" id="a-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" style="font-size:24px;letter-spacing:.3em"></label>`
+      ${S.aj.pinHash||staffOn()?`<label class="grp"><span class="label">${staffOn()?'PIN de administrador o dueño':'PIN del dueño'}</span><input class="in num" id="a-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" style="font-size:24px;letter-spacing:.3em"></label>`
         :`<p class="muted" style="margin:0;font-size:14px">No hay PIN configurado. Créalo en Ajustes → Seguridad.</p>`}
       <p class="muted" style="margin:0;font-size:13px">Queda registrado en la bitácora de Reportes.</p>
     </div><div class="sheet-f"><button class="btn" data-act="close">Regresar</button><span class="grow"></span><button class="btn danger" data-act="auth-ok" style="border-color:var(--ketchup)">Confirmar</button></div></div>`;
   }
   if(m.k==='cs'){inner=vCsSheet(m)}
+  if(m.k==='stpin'){inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Cambiar PIN" style="max-width:420px"><div class="sheet-b"><div class="page-h"><h2>Nuevo PIN de ${h(m.n)}</h2></div>
+    <input class="in num" id="sp-p" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4 a 6 números"></div><div class="sheet-f"><button class="btn" data-act="close">Cancelar</button><span class="grow"></span><button class="btn primary" data-act="st-pin-ok">Guardar</button></div></div>`}
   if(m.k==='mesa'){
-    const ms=S.aj.meseros||[];
+    const ms=[...new Set([...(S.aj.personal||[]).filter(x=>x.rol==='mesero').map(x=>x.n),...(S.aj.meseros||[])])];
     inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Abrir mesa" style="max-width:640px"><div class="sheet-b">
       <div class="page-h"><h2>${m.edit?'Cambiar datos de la mesa':'Abrir mesa'}</h2></div>
       <div><span class="label">Mesero ${ms.length?'· obligatorio':''}</span>${ms.length?`<div class="opts">${ms.map(n=>`<button class="opt" data-act="dm-mesero" data-v="${h(n)}" aria-pressed="${m.mesero===n}">${h(n)}</button>`).join('')}</div>`:'<p class="muted" style="margin:4px 0 0">Aún no hay meseros. Agrégalos en Ajustes → Meseros.</p>'}</div>
@@ -1248,7 +1274,7 @@ function cobrar(){
     pago.recibido=r2(rec);pago.cambio=r2(rec-t);
   }
   if(!o.folio)o.folio=nextFolio();
-  const venta={...clone(o),estado:'pagada',pagada:Date.now(),pago,total:t};
+  const venta={...clone(o),estado:'pagada',pagada:Date.now(),pago,total:t,cajero:S.user?.n||''};
   venta.items.forEach(l=>{delete l.sel;delete l.presIdx});
   const tel=telKey(o.cliente.tel);let cliDoc=null;
   if(tel){
@@ -1290,6 +1316,7 @@ document.addEventListener('click',async e=>{
   if(a!=='limpiar')S.limpiar=false;
   switch(a){
     case 'nav':{const v=b.dataset.v;
+      if(staffOn()){if(!can(v)){toast('Tu puesto no tiene acceso a esta sección');break}S.view=v;S.menuDraft=null;S.ajDraft=null;S.anular=null;S.instOk=false;S.tpl=null;render();break}
       if((v==='menu'||v==='ajustes'||v==='costeo')&&S.aj.pinHash&&!S.adminOk){pedirAuth({titulo:'Entrar a '+({menu:'Menú',ajustes:'Ajustes',costeo:'Costeo'}[v]),motivo:false,ok:()=>{S.adminOk=true;S.view=v;S.menuDraft=null;S.ajDraft=null;render()}});break}
       if(v!=='menu'&&v!=='ajustes')S.adminOk=false;
       S.view=v;S.menuDraft=null;S.ajDraft=null;S.anular=null;S.instOk=false;S.tpl=null;render();break}
@@ -1338,6 +1365,7 @@ document.addEventListener('click',async e=>{
       try{await saveCuenta(o);S.orden=newOrden();render();toast('Cuenta guardada en Cuentas')}catch(e){}
       break;
     case 'cobrar':
+      if(!canCobrar()){toast('Solo caja puede cobrar');break}
       if(S.aj.comandaPrimero!==false&&o.items.some(l=>!l.enviado&&!l.regalo)){toast('Primero manda la comanda');break}
       if(o.tipo!=='mostrador'&&!validOrden(o))break;
       S.modal={k:'cobro',metodo:'efectivo',recibido:''};renderModal();break;
@@ -1387,7 +1415,7 @@ document.addEventListener('click',async e=>{
       d.lr('Cuentas canceladas ('+cc.length+')',money(cc.reduce((x,v)=>x+(+v.monto||0),0))).lr('Productos quitados de cocina ('+pq.length+')',money(pq.reduce((x,v)=>x+(+v.monto||0),0))).lr('Cajón abierto sin venta',String(cj.length)).lr('Intentos con PIN incorrecto',String(pf.length));
       const det=[...bh].filter(x=>x.accion!=='Salida de efectivo'||true).sort((a,b)=>a.t-b.t);
       if(det.length){d.align('c').line('='.repeat(36)).bold(1).line('Detalle de acciones con PIN').bold(0).align('l');
-        det.forEach(x=>{d.bold(1).para(hora(x.t)+' '+x.accion+(x.folio?' #'+x.folio:'')+(+x.monto?' '+money(+x.monto):'')).bold(0);if(x.detalle)d.para('  '+x.detalle);if(x.motivo)d.para('  Motivo: '+x.motivo)})}
+        det.forEach(x=>{d.bold(1).para(hora(x.t)+' '+x.accion+(x.folio?' #'+x.folio:'')+(+x.monto?' '+money(+x.monto):'')).bold(0);if(x.detalle)d.para('  '+x.detalle);if(x.pidio||x.autorizo)d.para('  '+[x.pidio?'Pidió: '+x.pidio:'',x.autorizo?'Autorizó: '+x.autorizo:''].filter(Boolean).join(' · '));if(x.motivo)d.para('  Motivo: '+x.motivo)})}
       if(pf.length>=3)d.align('c').bold(1).para('ATENCION: '+pf.length+' intentos con PIN incorrecto hoy').bold(0).align('l');
       d.feed(3).cut();
       openPrint('Corte de caja',d);
@@ -1413,9 +1441,12 @@ document.addEventListener('click',async e=>{
     case 'auth-mot':S.modal.mot=b.dataset.v;renderModal();break;
     case 'auth-ok':{const mm=S.modal;
       if(mm.motivo&&!String(mm.mot||'').trim()){toast('Escribe el motivo');break}
-      if(S.aj.pinHash){const v=($('#a-pin')||{}).value||'';if(await sha(v)!==S.aj.pinHash){toast('PIN incorrecto. El intento quedó registrado');try{await Store.set('bitacora',uid(),{t:Date.now(),accion:'PIN incorrecto',detalle:mm.titulo||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:''})}catch(e){}const n=$('#a-pin');if(n){n.value='';n.focus()}break}}
+      let aut='';
+      if(S.aj.pinHash||staffOn()){const v=($('#a-pin')||{}).value||'';const who=await staffByPin(v);const okRol=who&&(!staffOn()||who.rol==='admin'||who.rol==='dueno');
+        if(!okRol){toast(who?'Ese PIN no puede autorizar. Pide el de administrador o dueño':'PIN incorrecto. El intento quedó registrado');try{await Store.set('bitacora',uid(),{t:Date.now(),accion:'PIN incorrecto',detalle:mm.titulo||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:'',pidio:S.user?.n||'',autorizo:who?who.n+' (sin permiso)':''})}catch(e){}const n=$('#a-pin');if(n){n.value='';n.focus()}break}
+        aut=who.n}
       S.modal=null;renderModal();
-      if(mm.accion){try{await Store.set('bitacora',uid(),{t:Date.now(),accion:mm.accion,detalle:mm.detalle||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:String(mm.mot||'').trim()})}catch(e){}}
+      if(mm.accion){try{await Store.set('bitacora',uid(),{t:Date.now(),accion:mm.accion,detalle:mm.detalle||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:String(mm.mot||'').trim(),pidio:S.user?.n||'',autorizo:aut})}catch(e){}}
       await mm.ok(String(mm.mot||'').trim());break}
     case 'letrero':{const a=S.aj,d=Doc(+a.ancho||48).init();const parts=['AVISO DE PRIVACIDAD SIMPLIFICADO',a.negocio+(a.responsable?' ('+a.responsable+')':'')+(a.dir?', '+a.dir:'')+', es responsable de tus datos personales.','Usamos tu nombre y teléfono para registrar tus compras, tus pedidos'+(a.fid?' y tu programa de sellos':'')+'.','Si nos autorizas, también para enviarte promociones por WhatsApp. Si no lo deseas, díselo a quien te atiende'+(a.tel?' o escríbenos al '+a.tel:'')+'.','Puedes pedir acceso, corrección o eliminación de tus datos'+(a.tel?' al mismo número':' en caja')+'.','Pide el aviso de privacidad completo en caja.'];
       d.align('c').bold(1).line(parts[0]).bold(0).line('').align('l');parts.slice(1).forEach(x=>{d.para(x);d.line('')});d.feed(3).cut();openPrint('Letrero aviso de privacidad',d);break}
@@ -1456,14 +1487,14 @@ document.addEventListener('click',async e=>{
     case 'web-export':{const a=S.ajDraft||S.aj;const data={kaja:'web',v:1,negocio:a.negocio,wa:a.tel,dir:a.dir,horario:a.webHorario||'',envio:+a.webEnvio||0,menu:S.menu};
       saveFile('menu-'+webSlug(a)+'.json',JSON.stringify(data),'application/json');toast('Archivo listo: súbelo a GitHub');break}
     case 'dlg-mesa':{if(b.dataset.edit){S.modal={k:'mesa',edit:true,mesero:o.mesero||'',mesa:String(o.mesa||''),com:+o.comensales||1,tel:o.cliente.tel||'',nom:o.cliente.nombre||''}}
-      else{if(o.items.length&&!o.guardada){toast('Primero cobra, guarda o descarta la venta actual');break}S.modal={k:'mesa',mesero:'',mesa:'',com:2,tel:'',nom:''}}renderModal();break}
+      else{if(o.items.length&&!o.guardada){toast('Primero cobra, guarda o descarta la venta actual');break}S.modal={k:'mesa',mesero:S.user&&S.user.rol==='mesero'?S.user.n:'',mesa:'',com:2,tel:'',nom:''}}renderModal();break}
     case 'dm-mesero':dlgRead();S.modal.mesero=b.dataset.v;renderModal();break;
     case 'dm-mesa':dlgRead();S.modal.mesa=b.dataset.n;renderModal();break;
     case 'dm-com':dlgRead();S.modal.com=Math.min(30,Math.max(1,S.modal.com+ +b.dataset.d));renderModal();break;
     case 'dm-ocupada':{const c=mesaOcupada(b.dataset.n,o.id);if(!c)break;if(S.modal.edit){toast('Esa mesa está ocupada');break}
       if(o.guardada){try{await Store.set('cuentas',o.id,o)}catch(e){toast('No se guardó la cuenta actual');break}}
       S.orden={...newOrden(),...clone(c),guardada:true};S.modal=null;renderModal();render();toast('Cuenta de Mesa '+c.mesa+' abierta');break}
-    case 'dm-ok':{dlgRead();const m=S.modal,ms=S.aj.meseros||[];
+    case 'dm-ok':{dlgRead();const m=S.modal,ms=[...(S.aj.personal||[]).filter(x=>x.rol==='mesero').map(x=>x.n),...(S.aj.meseros||[])];
       if(ms.length&&!m.mesero){toast('Elige el mesero');break}if(!m.mesa){toast('Elige la mesa');break}
       const tk=telKey(m.tel);if(tk&&!m.nom)m.nom=cliente(tk)?.nombre||'';
       if(!m.edit){if(o.guardada){try{await Store.set('cuentas',o.id,o)}catch(e){toast('No se guardó la cuenta actual');break}}S.orden=newOrden('mesa');S.orden.plato=1}
@@ -1484,6 +1515,24 @@ document.addEventListener('click',async e=>{
       const fallos=[];(m.items||[]).forEach(([pid,pres,sel,q,nota])=>{if(!prod(pid)){fallos.push(pid);return}if(!addFromSheet({pid,pres,sel:sel||{},qty:+q||1,nota:nota||''}))fallos.push(prod(pid).n)});
       if(x.guardada){try{await Store.set('cuentas',x.id,x)}catch(e){}}
       S.modal=null;renderModal();render();toast(fallos.length?'Pedido creado, revisa: '+fallos.join(', '):(m.edit?'Pedido actualizado':'Pedido creado'));break}
+    case 'kp':{const d=b.dataset.d;if(d==='⌫'){S.kp=(S.kp||'').slice(0,-1);render();break}
+      if(d!=='OK'){if((S.kp||'').length<6)S.kp=(S.kp||'')+d;render();break}
+      const who=await staffByPin(S.kp||'');S.kp='';if(!who){toast('PIN incorrecto');try{await Store.set('bitacora',uid(),{t:Date.now(),accion:'PIN incorrecto',detalle:'Entrar a la tablet',motivo:''})}catch(e){}render();break}
+      S.user=who;S.lastAct=Date.now();render();toast('Hola, '+who.n);break}
+    case 'lock':S.user=null;S.kp='';S.modal=null;renderModal();render();break;
+    case 'st-add':{const n=(($('#st-n')||{}).value||'').trim(),r=($('#st-r')||{}).value,pn=(($('#st-p')||{}).value||'').trim();
+      if(!n){toast('Escribe el nombre');break}if(!/^\d{4,6}$/.test(pn)){toast('El PIN debe ser de 4 a 6 números');break}
+      const hh=await sha(pn);if((S.aj.personal||[]).some(x=>x.pinH===hh)||hh===S.aj.pinHash){toast('Ese PIN ya lo usa otra persona');break}
+      const lista=[...(S.aj.personal||[])];const hayDueno=lista.some(x=>x.rol==='dueno')||!!S.aj.pinHash;
+      if(!hayDueno&&r!=='dueno'){toast('Primero agrega al Dueño (o crea el PIN de dueño en Seguridad)');break}
+      lista.push({id:uid(),n,rol:r,pinH:hh});const primero=!staffOn();await saveAjNow({personal:lista});
+      if(primero){S.user=r==='dueno'?{id:lista[lista.length-1].id,n,rol:r}:{id:'dueno',n:'Dueño',rol:'dueno'}}S.lastAct=Date.now();render();toast(n+' agregado como '+ROLES[r].n);break}
+    case 'st-del':{const lista=(S.aj.personal||[]).filter(x=>x.id!==b.dataset.id);const quedaDueno=lista.some(x=>x.rol==='dueno')||!!S.aj.pinHash;
+      if(lista.length&&!quedaDueno){toast('Debe quedar al menos un Dueño');break}await saveAjNow({personal:lista});render();toast('Quitado');break}
+    case 'st-pin':{const x=(S.aj.personal||[]).find(y=>y.id===b.dataset.id);if(!x)break;S.modal={k:'stpin',id:x.id,n:x.n};renderModal();setTimeout(()=>{const i=$('#sp-p');if(i)i.focus()},50);break}
+    case 'st-pin-ok':{const pn=(($('#sp-p')||{}).value||'').trim();if(!/^\d{4,6}$/.test(pn)){toast('El PIN debe ser de 4 a 6 números');break}const hh=await sha(pn);
+      if((S.aj.personal||[]).some(x=>x.pinH===hh&&x.id!==S.modal.id)||hh===S.aj.pinHash){toast('Ese PIN ya lo usa otra persona');break}
+      await saveAjNow({personal:(S.aj.personal||[]).map(x=>x.id===S.modal.id?{...x,pinH:hh}:x)});S.modal=null;renderModal();toast('PIN cambiado');break}
     case 'mesero-add':{const el=$('#mesero-n'),v=(el&&el.value||'').trim();if(!v)break;const a=S.ajDraft;a.meseros=[...(a.meseros||[]).filter(x=>x!==v),v];render();break}
     case 'mesero-del':{const a=S.ajDraft;a.meseros=(a.meseros||[]).filter(x=>x!==b.dataset.v);render();break}
     case 'wa-paste':S.modal={k:'wapaste'};renderModal();break;
@@ -1559,6 +1608,7 @@ document.addEventListener('change',async e=>{if(e.target.id!=='logo-file'||!S.aj
     const sm=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,800/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/png'))};im.onerror=rej;im.src=src});
     S.ajDraft.logoSrc=sm;S.ajDraft.logo=await procLogo(sm,S.ajDraft.ancho,S.ajDraft.logoEsc);S.ajDraft.logoOn=true;const cb=document.querySelector('[data-ac=logoOn]');if(cb)cb.checked=true;const lb=document.querySelector('label[for=logo-file]');if(lb)lb.textContent='Cambiar logo…';updTkPv();toast('Logo listo. Guarda los ajustes')}catch(err){toast('No se pudo leer esa imagen')}});
 document.addEventListener('change',async e=>{const d=e.target.dataset||{};
+  if(e.target.id==='st-lock'){await saveAjNow({lockMin:+e.target.value});toast('Listo');return}
   if(d.csProd){S.cprod=e.target.value;render();return}
   if(d.cs){const ks=d.cs.split('.');if(ks[0]==='rec'&&!S.cost.rec[ks[1]])S.cost.rec[ks[1]]={it:[],emp:0,add:{}};csSet(d.cs,e.target.value);e.target.blur();await saveCost();render();if(S.modal&&S.modal.k==='cs')renderModal()}
   if((e.target.id==='cf-n'||e.target.id==='cf-u')&&S.modal&&S.modal.form){csFormRead();const f=S.modal.form,ex=csFind(f.n);
@@ -1571,6 +1621,8 @@ document.addEventListener('change',async e=>{if(e.target.id!=='rest-file')return
   try{const o=JSON.parse(await f.text());if(o.app!=='guacamole-pos'||!o.data)throw 0;S.restore=o;render()}catch(err){toast('Ese archivo no es un respaldo del punto de venta')}});
 
 /* ===================== Arranque ===================== */
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{S.lastAct=Date.now()},true));
+setInterval(()=>{const lm=S.aj.lockMin??5;if(staffOn()&&S.user&&lm>0&&Date.now()-(S.lastAct||0)>lm*60000){S.user=null;S.kp='';S.modal=null;renderModal();render()}},20000);
 async function boot(){
   render();
   await Store.init();
