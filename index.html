@@ -861,48 +861,71 @@ function seedGuac(){const I=(id,n,u,c,m=0)=>({id,n,u,c,m});
   const ins=[I('carne','Carne molida de res','kg',155),I('panp','Pan parrillero','pza',6.23),I('panb','Pan brioche','pza',11),I('qam','Queso americano (rebanada)','pza',2.12),
     I('toc','Tocino','kg',151.67),I('mant','Mantequilla (porción)','pza',1),I('verd','Lechuga, jitomate y cebolla (porción)','pza',3.7),I('pina','Piña en almíbar (rebanada)','pza',7.63),I('ceb','Cebolla blanca','kg',59.5),I('papas','Papas a la francesa','kg',0)];
   const base=[{i:'carne',q:115},{i:'panp',q:1},{i:'qam',q:1},{i:'mant',q:1},{i:'verd',q:1}],papas={'1':[{i:'papas',q:150}]};
-  return {...COST0(),insumos:ins,rec:{clasica:{it:clone(base),emp:4.22,add:clone(papas)},tocino:{it:[...clone(base),{i:'toc',q:45}],emp:4.22,add:clone(papas)},pina:{it:[...clone(base),{i:'pina',q:1}],emp:4.22,add:clone(papas)}}}}
+  const f=re=>S.menu.prods.find(p=>re.test(p.n)&&!/mermelada|hot ?dog/i.test(p.n));const rec={};const c=f(/cl[aá]sica/i),to=f(/tocino/i),pi=f(/pi[ñn]a/i);
+  if(c)rec[c.id]={it:clone(base),emp:4.22,add:clone(papas)};if(to)rec[to.id]={it:[...clone(base),{i:'toc',q:45}],emp:4.22,add:clone(papas)};if(pi)rec[pi.id]={it:[...clone(base),{i:'pina',q:1}],emp:4.22,add:clone(papas)};
+  return {...COST0(),insumos:ins,rec}}
+function csFind(n){n=String(n||'').trim().toLowerCase();return S.cost.insumos.find(i=>i.n.trim().toLowerCase()===n)}
+function lineTxt(l){const i=S.cost.insumos.find(x=>x.id===l.i);if(!i)return null;const q=+l.q||0;
+  const qt=i.u==='pza'?(q===1?'1 pieza de':q+' piezas de'):(q>=1000?(q/1000)+' '+(i.u==='kg'?'kg':'l')+' de':q+' '+QU[i.u]+' de');return {i,txt:qt+' '+i.n,c:insPer(i)*q}}
+function cardEstado(pc,meta){return pc<=meta?['🟢','var(--pickle)','Bien']:pc<=meta+8?['🟡','var(--cheddar)','Justo']:['🔴','var(--ketchup)','Ganas poco']}
 function vCosteo(){
-  const C=S.cost,meta=+C.meta||35;
-  const color=pc=>pc<=meta?'var(--pickle)':pc<=meta+8?'var(--cheddar)':'var(--ketchup)';
-  const filas=[];S.menu.prods.forEach(p=>{if(!C.rec[p.id])return;(p.pres||[null]).forEach((pr,pi)=>{const rc=recCost(p.id,String(pi)),pv=precioDe(p,pi);if(!rc)return;
-    const pc=pv?rc.tot/pv*100:0;filas.push({p,pr,pi,rc,pv,pc,sug:Math.ceil(rc.tot/(meta/100)/5)*5})})});
-  const sel=S.cprod&&prod(S.cprod)?S.cprod:(Object.keys(C.rec)[0]||S.menu.prods[0]?.id);const sp=prod(sel);const r=C.rec[sel]||{it:[],emp:0,add:{}};
-  const insOpts=v=>`<option value="">Elige insumo…</option>`+C.insumos.map(i=>`<option value="${i.id}" ${i.id===v?'selected':''}>${h(i.n)}</option>`).join('');
-  const lineRows=(ls,path)=>ls.map((l,k)=>{const i=C.insumos.find(x=>x.id===l.i);return `<tr><td><select class="in" data-cs="${path}.${k}.i">${insOpts(l.i)}</select></td>
-    <td class="r"><input class="in num" style="max-width:110px" inputmode="decimal" data-cs="${path}.${k}.q" value="${h(l.q)}"></td><td>${i?QU[i.u]:''}</td>
-    <td class="r num">${i?(+i.c?money(insPer(i)*(+l.q||0)):'<span style="color:var(--ketchup)">falta costo</span>'):''}</td><td class="r"><button class="btn small" data-act="cs-del-line" data-path="${path}" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`}).join('');
-  const tabla=(ls,path,titulo)=>`<div><span class="label">${titulo}</span><div class="tablewrap"><table><thead><tr><th>Insumo</th><th class="r">Cantidad</th><th></th><th class="r">Costo</th><th></th></tr></thead><tbody>${lineRows(ls||[],path)}</tbody></table></div>
-    <button class="btn small" data-act="cs-add-line" data-path="${path}">＋ Ingrediente</button></div>`;
-  return `<div class="page">
-    <div class="page-h"><h1>Costeo</h1><span class="muted">Meta de costo: ${meta}% del precio</span></div>
-    ${!C.insumos.length?`<div class="panel"><h3>Empieza aquí</h3><p class="muted" style="margin:0">1) Da de alta tus insumos con su costo de compra. 2) Arma la receta de cada producto. Kaja calcula el costo, tu ganancia y un precio sugerido.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="cs-add-ins">＋ Primer insumo</button>${prod('clasica')?'<button class="btn primary" data-act="cs-seed">Cargar costos de Guacamole</button>':''}</div></div>`:''}
-    ${filas.length?`<div class="panel"><h3>Margen por producto</h3><div class="tablewrap"><table><thead><tr><th>Producto</th><th class="r">Costo</th><th class="r">Precio</th><th class="r">% costo</th><th class="r">Ganancia</th><th class="r">Precio para ${meta}%</th></tr></thead><tbody>
-      ${filas.map(f=>`<tr><td>${h(f.p.n)}${f.pr?' <span class="muted">· '+h(f.pr.n)+'</span>':''}${f.rc.falta.length?`<br><small style="color:var(--ketchup)">Falta costo: ${h(f.rc.falta.join(', '))}</small>`:''}</td>
-        <td class="r num">${money(f.rc.tot)}</td><td class="r num">${money(f.pv)}</td><td class="r num" style="color:${color(f.pc)};font-weight:700">${f.pc.toFixed(0)}%</td><td class="r num">${money(f.pv-f.rc.tot)}</td><td class="r num">${f.pc>meta?money(f.sug):'<span class="muted">ok</span>'}</td></tr>`).join('')}
-      </tbody></table></div><p class="muted" style="margin:0;font-size:13px">Verde: dentro de tu meta · Amarillo: hasta 8 puntos arriba · Rojo: más caro de lo que conviene.${+C.ind?' Incluye '+C.ind+'% de indirectos.':''}</p></div>`:''}
-    ${C.insumos.length?`<div class="panel"><div class="page-h"><h3>Receta</h3><select class="in" style="width:auto;min-width:240px" data-cs-prod="1" aria-label="Producto">${S.menu.prods.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${C.rec[p.id]?'● ':''}${h(p.n)}</option>`).join('')}</select></div>
-      ${tabla(r.it,'rec.'+sel+'.it',sp&&sp.pres?'Lleva siempre':'Ingredientes')}
-      ${sp&&sp.pres?sp.pres.map((pr,pi)=>pi?tabla((r.add||{})[pi],'rec.'+sel+'.add.'+pi,'Además, solo en “'+h(pr.n)+'”'):'').join(''):''}
-      <div class="form"><label><span class="label">Empaque y desechables por pieza $</span><input class="in num" inputmode="decimal" data-cs="rec.${sel}.emp" value="${h(r.emp||0)}"></label>
-        <div class="grp"><span class="label">Costo de ${h(sp?.n||'')}</span><span class="num" style="font:600 22px/1.3 var(--mono)">${C.rec[sel]?money(recCost(sel,'0').tot):'—'}</span></div></div>
-      ${C.rec[sel]?`<div><button class="btn small" data-act="cs-del-rec" data-pid="${sel}">Borrar receta de este producto</button></div>`:''}
-    </div>
-    <div class="panel"><div class="page-h"><h3>Insumos</h3><span class="muted">${C.insumos.length} · cambia el costo y todo se recalcula</span></div>
-      <div class="tablewrap"><table><thead><tr><th>Insumo</th><th>Se compra por</th><th class="r">Costo</th><th class="r">Merma %</th><th class="r">Recetas</th><th></th></tr></thead><tbody>
-      ${C.insumos.map((i,k)=>{const uso=Object.values(C.rec).filter(r=>[...(r.it||[]),...Object.values(r.add||{}).flat()].some(l=>l.i===i.id)).length;return `<tr>
-        <td><input class="in" data-cs="insumos.${k}.n" value="${h(i.n)}"></td>
-        <td><select class="in" data-cs="insumos.${k}.u">${Object.entries(UNI).map(([u,n])=>`<option value="${u}" ${i.u===u?'selected':''}>${n}</option>`).join('')}</select></td>
-        <td class="r"><input class="in num" style="max-width:120px;${+i.c?'':'border-color:var(--ketchup)'}" inputmode="decimal" data-cs="insumos.${k}.c" value="${h(i.c)}"></td>
-        <td class="r"><input class="in num" style="max-width:80px" inputmode="decimal" data-cs="insumos.${k}.m" value="${h(i.m||0)}"></td>
-        <td class="r num">${uso}</td><td class="r"><button class="btn small" data-act="cs-del-ins" data-k="${k}" ${uso?'disabled title="Se usa en recetas"':''} aria-label="Borrar insumo">✕</button></td></tr>`}).join('')}
-      </tbody></table></div><div><button class="btn small" data-act="cs-add-ins">＋ Insumo</button></div>
-      <p class="muted" style="margin:0;font-size:13px">Costo = lo que pagas por 1 kg, 1 litro o 1 pieza. Merma = lo que se pierde al limpiar o cocinar (ej. cebolla caramelizada ~70%).</p></div>
-    <div class="panel"><h3>Ajustes de costeo</h3><div class="form">
-      <label><span class="label">Indirectos (% sobre el costo: gas, luz, aceite…)</span><input class="in num" inputmode="decimal" data-cs="ind" value="${h(C.ind||0)}"></label>
-      <label><span class="label">Meta de costo (% del precio)</span><input class="in num" inputmode="decimal" data-cs="meta" value="${h(meta)}"></label></div></div>`:''}
-  </div>`;
+  const C=S.cost,meta=+C.meta||35,tab=S.cstab||'prod';
+  const wrap=x=>`<div class="page" style="max-width:920px;margin:0 auto">${x}</div>`;
+  const head=`<div class="page-h"><h1>Costeo</h1></div>
+    <div class="tabs" role="tablist" aria-label="Costeo">${[['prod','Mis productos'],['precios','Precios de compra'],['avz','Opciones']].map(([k,n])=>`<button data-act="cs-tab" data-k="${k}" aria-pressed="${tab===k}">${n}</button>`).join('')}</div>`;
+  if(tab==='precios')return wrap(head+`<div class="panel"><h3>¿A cuánto compras cada cosa?</h3>
+    <p class="muted" style="margin:0">Cuando algo suba de precio, cámbialo aquí y todos tus productos se recalculan solos.</p>
+    ${C.insumos.length?C.insumos.map((i,k)=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)">
+      <b style="flex:1;min-width:160px">${h(i.n)}</b><span>$</span><input class="in num" style="width:110px;${+i.c?'':'border-color:var(--ketchup)'}" inputmode="decimal" data-cs="insumos.${k}.c" value="${h(i.c)}" aria-label="Precio de ${h(i.n)}">
+      <span class="muted">por ${UNI[i.u]}</span></div>`).join(''):'<p class="muted">Aún no tienes ingredientes. Se agregan solos cuando armas un producto.</p>'}</div>`);
+  if(tab==='avz')return wrap(head+`<div class="panel"><h3>Opciones</h3><div class="form">
+      <label><span class="label">¿Qué % del precio quieres que sea costo? (lo sano: 30 a 35%)</span><input class="in num" inputmode="decimal" data-cs="meta" value="${h(meta)}"></label>
+      <label><span class="label">Sumar % por gas, luz, aceite (opcional)</span><input class="in num" inputmode="decimal" data-cs="ind" value="${h(C.ind||0)}"></label></div>
+      <h3 style="margin-top:8px">Merma (opcional)</h3><p class="muted" style="margin:0">Lo que se pierde al limpiar o cocinar. Ej.: la cebolla caramelizada pierde ~70%.</p>
+      ${C.insumos.map((i,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0"><span style="flex:1">${h(i.n)}</span><input class="in num" style="width:80px" inputmode="decimal" data-cs="insumos.${k}.m" value="${h(i.m||0)}"><span class="muted">%</span>
+        <button class="btn small" data-act="cs-del-ins" data-k="${k}" aria-label="Borrar ${h(i.n)}">Borrar</button></div>`).join('')}
+    </div>`);
+  const sinNada=!Object.keys(C.rec).length;
+  const cards=S.menu.cats.map(c=>{const ps=S.menu.prods.filter(p=>p.c===c.id&&p.on!==false);if(!ps.length)return '';
+    return `<h2 style="margin:16px 0 8px">${h(c.n)}</h2><div class="cards">${ps.map(p=>{const rc=recCost(p.id,'0'),pv=precioDe(p,0);
+      if(!rc||!(rc.tot))return `<button class="card" data-act="cs-open" data-pid="${p.id}"><div class="row"><h3>${h(p.n)}</h3></div><div class="muted">Toca para poner qué lleva</div></button>`;
+      const pc=pv?rc.tot/pv*100:0,[ic,col,lab]=cardEstado(pc,meta);
+      return `<button class="card" data-act="cs-open" data-pid="${p.id}" style="border-color:${col}"><div class="row"><h3>${h(p.n)}</h3><span>${ic}</span></div>
+        <div class="muted">Te cuesta <b class="num">${money(rc.tot)}</b> · La vendes en <b class="num">${money(pv)}</b></div>
+        <div class="row"><span style="color:${col};font-weight:700">${lab}: ${pc.toFixed(0)}% de costo</span><span class="amt num">Ganas ${money(pv-rc.tot)}</span></div>
+        ${rc.falta.length?`<small style="color:var(--ketchup)">Falta precio de: ${h(rc.falta.join(', '))}</small>`:''}</button>`}).join('')}</div>`}).join('');
+  const clas=S.menu.prods.find(p=>/cl[aá]sica/i.test(p.n));
+  return wrap(head+(clas&&!C.rec[clas.id]?`<div class="panel"><p class="muted" style="margin:0">Ya tenemos los costos de tus hamburguesas de Guacamole. Cárgalos para no capturarlos.</p><div><button class="btn primary" data-act="cs-seed">Cargar costos de Guacamole</button></div></div>`:'')+(sinNada?`<div class="panel"><h3>¿Cuánto te cuesta lo que vendes?</h3><p class="muted" style="margin:0">Toca un producto y dime qué lleva y cuánto. Kaja te dice cuánto te cuesta y cuánto ganas.</p>
+</div>`:'')+cards);
+}
+function csFormRead(){const f=S.modal&&S.modal.form;if(!f)return;[['cf-n','n'],['cf-q','q'],['cf-qu','qu'],['cf-c','c'],['cf-u','u']].forEach(([id,k])=>{const el=$('#'+id);if(el)f[k]=el.value})}
+function vCsSheet(m){
+  const p=prod(m.pid);if(!p)return '';const C=S.cost,r=C.rec[p.id]||{it:[],emp:0,add:{}},pi=String(m.pi||0),meta=+C.meta||35;
+  const rc=recCost(p.id,pi)||{tot:0,falta:[]},pv=precioDe(p,+pi),pc=pv&&rc.tot?rc.tot/pv*100:0,[ic,col,lab]=cardEstado(pc,meta);
+  const lista=(ls,path)=>(ls||[]).map((l,k)=>{const x=lineTxt(l);if(!x)return '';return `<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${h(x.txt)}</span><span class="num">${+x.i.c?money(x.c):'<span style="color:var(--ketchup)">sin precio</span>'}</span><button class="btn small" data-act="cs-del-line" data-path="${path}" data-k="${k}" aria-label="Quitar">✕</button></div>`}).join('');
+  const f=m.form;const ex=f?csFind(f.n):null;
+  const form=f?`<div class="panel" style="gap:10px"><b>${f.where==='add'?'Agregar solo para “'+h(p.pres[+pi].n)+'”':'Agregar ingrediente'}</b>
+    <div class="form"><label><span class="label">¿Qué es?</span><input class="in" id="cf-n" list="cf-ins" value="${h(f.n)}" placeholder="Ej. Carne, Pan, Queso"></label>
+      <label><span class="label">¿Cuánto le pones?</span><div style="display:flex;gap:6px"><input class="in num" id="cf-q" inputmode="decimal" value="${h(f.q)}" placeholder="115" style="flex:1">
+        <span id="cf-ql" style="align-self:center;min-width:36px">${QU[ex?ex.u:f.u]}</span></div></label></div>
+    <datalist id="cf-ins">${C.insumos.map(i=>`<option value="${h(i.n)}">`).join('')}</datalist>
+    <p class="muted" id="cf-ya" style="margin:0" ${ex?'':'hidden'}>${ex?`Ya lo tienes: lo compras a ${money(+ex.c)} por ${UNI[ex.u]}.`:''}</p><div class="form" id="cf-new" ${ex?'hidden':''}><label><span class="label">¿A cuánto lo compras?</span><input class="in num" id="cf-c" inputmode="decimal" value="${h(f.c)}" placeholder="155"></label>
+      <label><span class="label">¿Por…?</span><select class="in" id="cf-u">${Object.entries(UNI).map(([u,n])=>`<option value="${u}" ${f.u===u?'selected':''}>${n}</option>`).join('')}</select></label></div>
+    <div style="display:flex;gap:8px"><button class="btn" data-act="cs-form-no">Cancelar</button><button class="btn primary" data-act="cs-form-ok">Agregar</button></div></div>`:'';
+  return `<div class="sheet" role="dialog" aria-modal="true" aria-label="${h(p.n)}" style="max-width:620px"><div class="sheet-b">
+    <div class="page-h"><h2>${h(p.n)}</h2></div>
+    ${p.pres?`<div class="seg" role="group" style="grid-template-columns:repeat(${p.pres.length},1fr)">${p.pres.map((x,i)=>`<button data-act="cs-pi" data-i="${i}" aria-pressed="${String(i)===pi}">${h(x.n)} · ${money(+x.p)}</button>`).join('')}</div>`:''}
+    <div><span class="label">Lleva</span>${lista(r.it,'rec.'+p.id+'.it')||'<p class="muted" style="margin:4px 0">Aún nada.</p>'}
+      ${f?'':`<button class="btn small" data-act="cs-form" data-w="it" style="margin-top:8px">＋ Agregar ingrediente</button>`}</div>
+    ${p.pres&&pi!=='0'?`<div><span class="label">Además, solo en “${h(p.pres[+pi].n)}”</span>${lista((r.add||{})[pi],'rec.'+p.id+'.add.'+pi)||'<p class="muted" style="margin:4px 0">Nada extra (ej. papas).</p>'}
+      ${f?'':`<button class="btn small" data-act="cs-form" data-w="add" style="margin-top:8px">＋ Agregar solo para ${h(p.pres[+pi].n)}</button>`}</div>`:''}
+    ${form}
+    <label style="display:flex;gap:8px;align-items:center"><span>Empaque, servilletas y sobres: $</span><input class="in num" style="width:100px" inputmode="decimal" data-cs="rec.${p.id}.emp" value="${h(r.emp||0)}"></label>
+    <div class="panel" style="border-color:${rc.tot?col:'var(--line)'}"><div style="display:flex;justify-content:space-between;gap:12px"><span>Te cuesta</span><b class="num">${money(rc.tot)}</b></div><div style="display:flex;justify-content:space-between;gap:12px"><span>La vendes en</span><b class="num">${money(pv)}</b></div>
+      <div style="display:flex;justify-content:space-between;gap:12px"><span style="font-weight:700">Ganas</span><b class="num" style="font-size:20px">${money(pv-rc.tot)}</b></div>
+      ${rc.tot?`<div style="color:${col};font-weight:700">${ic} ${lab}: el costo es ${pc.toFixed(0)}% del precio${pc>meta?` · para quedar en ${meta}% tendría que venderse en ${money(Math.ceil(rc.tot/(meta/100)/5)*5)}`:''}</div>`:''}
+      ${rc.falta.length?`<small style="color:var(--ketchup)">Falta el precio de: ${h(rc.falta.join(', '))} (en “Precios de compra”)</small>`:''}</div>
+  </div><div class="sheet-f"><span class="grow"></span><button class="btn primary big" data-act="close">Listo</button></div></div>`;
 }
 function csSet(path,val){const ks=path.split('.');let o=S.cost;for(let i=0;i<ks.length-1;i++){const k=ks[i];if(o[k]==null)o[k]=/^\d+$/.test(ks[i+1])&&ks[i]!=='add'?[]:{};o=o[k]}
   const last=ks[ks.length-1];o[last]=['n','u','i'].includes(last)?val:(val===''?0:+String(val).replace(',','.')||0)}
@@ -1069,6 +1092,7 @@ function renderModal(){
       <p class="muted" style="margin:0;font-size:13px">Queda registrado en la bitácora de Reportes.</p>
     </div><div class="sheet-f"><button class="btn" data-act="close">Regresar</button><span class="grow"></span><button class="btn danger" data-act="auth-ok" style="border-color:var(--ketchup)">Confirmar</button></div></div>`;
   }
+  if(m.k==='cs'){inner=vCsSheet(m)}
   if(m.k==='mesa'){
     const ms=S.aj.meseros||[];
     inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Abrir mesa" style="max-width:640px"><div class="sheet-b">
@@ -1423,12 +1447,21 @@ document.addEventListener('click',async e=>{
       const fallos=[];(c.i||[]).forEach(([pid,pres,sel,q,nota])=>{if(!prod(pid)){fallos.push(pid);return}const ok=addFromSheet({pid,pres,sel:sel||{},qty:+q||1,nota:nota||''});if(!ok)fallos.push(prod(pid).n)});
       o.notaPago=c.pg?(c.pg+(c.c?' (paga con '+c.c+')':'')):'';
       S.modal=null;renderModal();render();toast(fallos.length?'Cargado, pero revisa: '+fallos.join(', '):'Pedido cargado. Pago: '+(o.notaPago||'—'));break}
-    case 'cs-seed':S.cost=seedGuac();S.cprod='clasica';await saveCost();render();toast('Costos de Guacamole cargados');break;
+    case 'cs-tab':S.cstab=b.dataset.k;render();break;
+    case 'cs-open':S.modal={k:'cs',pid:b.dataset.pid,pi:'0',form:null};renderModal();break;
+    case 'cs-pi':S.modal.pi=b.dataset.i;S.modal.form=null;renderModal();break;
+    case 'cs-form':S.modal.form={where:b.dataset.w,n:'',q:'',qu:'g',c:'',u:'kg'};renderModal();setTimeout(()=>{const x=$('#cf-n');if(x)x.focus()},50);break;
+    case 'cs-form-no':S.modal.form=null;renderModal();break;
+    case 'cs-form-ok':{csFormRead();const m=S.modal,f=m.form;const n=f.n.trim(),q=+String(f.q).replace(',','.');if(!n){toast('Escribe qué es');break}if(!(q>0)){toast('Escribe cuánto le pones');break}
+      let i=csFind(n);if(!i){const u=f.qu==='pza'?'pza':f.qu==='ml'?(f.u==='pza'?'lt':f.u==='kg'?'lt':f.u):(f.u==='pza'?'pza':f.u);i={id:uid(),n,u:f.u,c:+String(f.c).replace(',','.')||0,m:0};S.cost.insumos.push(i)}
+      if(!S.cost.rec[m.pid])S.cost.rec[m.pid]={it:[],emp:0,add:{}};const r=S.cost.rec[m.pid];const arr=f.where==='add'?((r.add||(r.add={}))[m.pi]||(r.add[m.pi]=[])):r.it;arr.push({i:i.id,q});
+      m.form=null;await saveCost();renderModal();render();break}
+    case 'cs-seed':{const g=seedGuac();g.insumos.forEach(i=>{if(!csFind(i.n)&&!S.cost.insumos.find(x=>x.id===i.id))S.cost.insumos.push(i)});Object.assign(S.cost.rec,g.rec);}await saveCost();render();toast('Costos de Guacamole cargados');break;
     case 'cs-add-ins':S.cost.insumos.push({id:uid(),n:'Nuevo insumo',u:'kg',c:0,m:0});await saveCost();render();break;
     case 'cs-del-ins':S.cost.insumos.splice(+b.dataset.k,1);await saveCost();render();break;
     case 'cs-add-line':{const path=b.dataset.path,ks=path.split('.'),pid=ks[1];if(!S.cost.rec[pid])S.cost.rec[pid]={it:[],emp:0,add:{}};const r=S.cost.rec[pid];
       let arr=ks[2]==='it'?r.it:((r.add||(r.add={}))[ks[3]]||(r.add[ks[3]]=[]));arr.push({i:'',q:0});S.cprod=pid;await saveCost();render();break}
-    case 'cs-del-line':{const arr=csGet(b.dataset.path);if(arr){arr.splice(+b.dataset.k,1);await saveCost();render()}break}
+    case 'cs-del-line':{const arr=csGet(b.dataset.path);if(arr){arr.splice(+b.dataset.k,1);await saveCost();render();if(S.modal&&S.modal.k==='cs')renderModal()}break}
     case 'cs-del-rec':delete S.cost.rec[b.dataset.pid];await saveCost();render();break;
     case 'menu-export':saveFile('menu-'+(S.aj.negocio||'negocio').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json',JSON.stringify({kaja:'menu',v:1,menu:S.menu},null,1),'application/json');toast('Menú descargado');break;
     case 'menu-import-no':S.menuImport=null;render();break;
@@ -1476,7 +1509,10 @@ document.addEventListener('change',async e=>{if(e.target.id!=='logo-file'||!S.aj
     S.ajDraft.logoSrc=sm;S.ajDraft.logo=await procLogo(sm,S.ajDraft.ancho,S.ajDraft.logoEsc);S.ajDraft.logoOn=true;const cb=document.querySelector('[data-ac=logoOn]');if(cb)cb.checked=true;const lb=document.querySelector('label[for=logo-file]');if(lb)lb.textContent='Cambiar logo…';updTkPv();toast('Logo listo. Guarda los ajustes')}catch(err){toast('No se pudo leer esa imagen')}});
 document.addEventListener('change',async e=>{const d=e.target.dataset||{};
   if(d.csProd){S.cprod=e.target.value;render();return}
-  if(d.cs){const ks=d.cs.split('.');if(ks[0]==='rec'&&!S.cost.rec[ks[1]])S.cost.rec[ks[1]]={it:[],emp:0,add:{}};csSet(d.cs,e.target.value);e.target.blur();await saveCost();render()}});
+  if(d.cs){const ks=d.cs.split('.');if(ks[0]==='rec'&&!S.cost.rec[ks[1]])S.cost.rec[ks[1]]={it:[],emp:0,add:{}};csSet(d.cs,e.target.value);e.target.blur();await saveCost();render();if(S.modal&&S.modal.k==='cs')renderModal()}
+  if((e.target.id==='cf-n'||e.target.id==='cf-u')&&S.modal&&S.modal.form){csFormRead();const f=S.modal.form,ex=csFind(f.n);
+    const ql=$('#cf-ql'),ya=$('#cf-ya'),nw=$('#cf-new');if(ql)ql.textContent=QU[ex?ex.u:f.u];
+    if(ya){ya.hidden=!ex;ya.textContent=ex?'Ya lo tienes: lo compras a '+money(+ex.c)+' por '+UNI[ex.u]+'.':''}if(nw)nw.hidden=!!ex}});
 document.addEventListener('change',e=>{const f=e.target.dataset&&e.target.dataset.fecha;if(!f)return;S[f]=e.target.value;e.target.blur();render()});
 document.addEventListener('change',async e=>{if(e.target.id!=='menu-file')return;const f=e.target.files[0];e.target.value='';if(!f)return;
   try{S.menuImport=normMenu(JSON.parse(await f.text()));render()}catch(err){toast('No se pudo leer el menú: '+err.message)}});
