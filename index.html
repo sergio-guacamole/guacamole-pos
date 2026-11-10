@@ -173,6 +173,7 @@ tr.anulada td:last-child{text-decoration:none}
 .check input{width:22px;height:22px;accent-color:var(--cheddar)}
 .mrow{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(80px,1fr)) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .orow{display:grid;grid-template-columns:minmax(0,2fr) minmax(80px,1fr) auto;gap:8px;align-items:center}
+.modo{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--bg)}.modo>div{display:flex;flex-direction:column;min-width:0}.modo-b{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .plato-h{font:600 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--cheddar);padding:12px 0 4px;border-bottom:1px solid var(--line)}
 .ctabs{display:flex;flex-wrap:wrap;gap:6px}
 .ctabs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:14px;line-height:1.1}
@@ -349,11 +350,16 @@ const TACO_MENU={
   ]
 };
 const PLANTILLAS={hamb:{n:'Hamburguesería',menu:DEFAULT_MENU},crep:{n:'Crepería / cafetería',menu:CREP_MENU},taco:{n:'Taquería',menu:TACO_MENU,aj:{mesas:15}}};
-const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review',responsable:'Sergio Rivera Avalos',encab:'',pieExtra:'',tFolio:true,tDir:true,tTel:true,tTipo:true,logoOn:false,logo:null,logoSrc:null,logoEsc:60,comCopias:1,comGrande:true,comandaPrimero:true,premioPid:'clasica'};
+const DEFAULT_AJ={negocio:'Guacamole Grill',dir:'Camino a los Olvera 221 int. 3, Querétaro',tel:'442 777 8133',pie:'¡Gracias por tu compra!',ancho:48,auto:true,cajon:true,mesas:6,fid:true,meta:8,minSello:90,avisoCorto:'Guacamole Grill usa tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.',qr:true,qrUrl:'https://g.page/r/CU1jB509tHm2EBE/review',responsable:'Sergio Rivera Avalos',encab:'',pieExtra:'',tFolio:true,tDir:true,tTel:true,tTipo:true,logoOn:false,logo:null,logoSrc:null,logoEsc:60,comCopias:1,comGrande:true,comandaPrimero:true,meseros:[],respCorte:true,webHorario:'',webEnvio:0,premioPid:'clasica'};
 const INST_HASH='ec4c9a8cfff4d2dc2b3db156263a306f1187041727ceb235694e012c51a1229f';
 const BLANK_AJ={negocio:'Mi negocio',dir:'',tel:'',responsable:'',encab:'',pie:'¡Gracias por tu compra!',pieExtra:'',qr:false,qrUrl:'',logoOn:false,logo:null,logoSrc:null,avisoCorto:'Usamos tu nombre y teléfono para tus compras, sellos y, si aceptas, promociones. Aviso completo en caja.'};
+const webSlug=(a=S.aj)=>String(a.negocio||'negocio').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'negocio';
+const webUrl=(a=S.aj)=>location.origin+location.pathname.replace(/[^/]*$/,'')+'menu.html?n='+webSlug(a);
+function parseKaja(txt){const m=String(txt||'').match(/#KAJA1\s+([A-Za-z0-9_-]+)/);if(!m)throw new Error('No encontré el código #KAJA1 en el mensaje');
+  let s=m[1].replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return JSON.parse(decodeURIComponent(escape(atob(s))))}
 const premioN=(a=S.aj)=>(S.menu.prods.find(p=>p.id===a.premioPid)||S.menu.prods.find(p=>p.id==='clasica')||{n:'regalo'}).n;
-const TIPOS={mostrador:'Mostrador',mesa:'Mesa',pedido:'Pedido'};
+const TIPOS={mostrador:'Venta directa',mesa:'Mesa',pedido:'Pedido'};
+const hhmm=ts=>{if(!ts)return '';const d=new Date(ts);let H=d.getHours(),M=String(d.getMinutes()).padStart(2,'0');const ap=H>=12?'pm':'am';H=H%12||12;return H+':'+M+' '+ap};
 const METODOS={efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',rappi:'Rappi',uber:'Uber Eats'};
 
 /* ===================== Utilidades ===================== */
@@ -372,6 +378,7 @@ const ICON={
   clientes:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
   caja:'<rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18M10 15h4"/>',
   abrir:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
+  costeo:'<path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/>',
   menu:'<path d="M4 5h6a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2zM20 5h-6a2 2 0 0 0-2 2v12h6a2 2 0 0 0 2-2z"/>',
   ajustes:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'
 };
@@ -411,7 +418,7 @@ const Pend={
 };
 
 /* ===================== Estado ===================== */
-const S={view:'vender',cat:'hamb',menu:clone(DEFAULT_MENU),aj:{...DEFAULT_AJ},ventas:[],cuentas:[],cortes:[],
+const S={cost:{v:1,ind:0,meta:35,insumos:[],rec:{}},cprod:null,view:'vender',cat:'hamb',menu:clone(DEFAULT_MENU),aj:{...DEFAULT_AJ},ventas:[],cuentas:[],cortes:[],
   orden:null,rango:'hoy',modal:null,movs:[],movTipo:'salida',bit:[],adminOk:false,clientes:[],qCli:'',loaded:false,storeErr:'',anular:null,limpiar:false,menuDraft:null,ajDraft:null,pending:false,
   fondo:'',contado:''};
 function newOrden(tipo='mostrador'){return{id:uid(),tipo,mesa:'',cliente:{nombre:'',tel:'',dir:''},envio:0,items:[],abierta:Date.now(),folio:null,guardada:false}}
@@ -443,7 +450,7 @@ function nextFolio(){
   return (all.length?Math.max(...all):0)+1;
 }
 function ordenLabel(o){
-  if(o.tipo==='mesa')return 'Mesa '+(o.mesa||'?');
+  if(o.tipo==='mesa')return 'Mesa '+(o.mesa||'?')+(o.mesero?' · '+o.mesero:'');
   if(o.tipo==='pedido')return 'Pedido'+(o.cliente.nombre?' · '+o.cliente.nombre:'');
   return 'Para llevar'+(o.cliente?.nombre?' · '+o.cliente.nombre:'');
 }
@@ -487,7 +494,9 @@ function buildComanda(o,lines,reimp){
   d.align('c').bold(1).size(1).line(reimp?'Reimpresion':'Zona de preparacion').size(0).bold(0);
   d.para('Folio: #'+(o.folio||'-')+'. Fecha: '+fechaLarga(Date.now())+'.');
   d.bold(1).para(TIPOS[o.tipo]+(o.tipo==='mesa'?'. Mesa '+(o.mesa||'?'):'')+'.').bold(0);
-  if(o.tipo==='pedido'){if(o.cliente.nombre)d.para('Ref: '+o.cliente.nombre);if(o.cliente.tel)d.line('Tel: '+o.cliente.tel);if(o.cliente.dir)d.para('Entrega: '+o.cliente.dir)}
+  if(o.tipo==='mesa'){if(o.mesero)d.line('Mesero: '+o.mesero);if(+o.comensales)d.line('Comensales: '+o.comensales)}
+  if(o.tipo==='pedido'){if(o.horaPedido)d.line('Pedido: '+hhmm(o.horaPedido));if(o.horaEntrega)d.bold(1).line((o.entrega==='domicilio'?'Entregar: ':'Recoge: ')+hhmm(o.horaEntrega)).bold(0)}
+  if(o.tipo==='pedido'){if(o.cliente.nombre)d.para('Ref: '+o.cliente.nombre);if(o.cliente.tel)d.line('Tel: '+o.cliente.tel);if(o.cliente.dir)d.para('Entrega: '+o.cliente.dir);if(o.notaPago)d.para('Pago: '+o.notaPago)}
   d.line('').align('l').rule();
   const grupos=o.tipo==='mesa'?[...new Set(lines.map(l=>l.plato||1))].sort((a,b)=>a-b):[null];
   grupos.forEach(pn=>{if(pn!=null)d.bold(1).align('c').line('--- PLATO '+pn+' ---').align('l').bold(0);
@@ -571,7 +580,7 @@ function openPrint(titulo,doc,then){
 function renderRail(){
   const n=S.cuentas.length;
   $('#rail').innerHTML=`<div class="brand">${h(S.aj.negocio||'Mi negocio')}</div>`+
-    [['vender','Vender'],['cuentas','Cuentas'],['caja','Caja'],['clientes','Clientes'],['reportes','Reportes'],['menu','Menú'],['ajustes','Ajustes']].map(([k,t])=>
+    [['vender','Vender'],['cuentas','Cuentas'],['caja','Caja'],['clientes','Clientes'],['reportes','Reportes'],['costeo','Costeo'],['menu','Menú'],['ajustes','Ajustes']].map(([k,t])=>
     `<button data-act="nav" data-v="${k}" ${S.view===k?'aria-current="page"':''}>${svg(k)}${t}${k==='cuentas'&&n?`<span class="badge num">${n}</span>`:''}</button>`).join('')+
     `<button data-act="cajon" class="rail-cajon">${svg('abrir')}Abrir cajón</button>`;
 }
@@ -588,7 +597,7 @@ function render(){
   S.pending=false;
   renderRail();
   const m=$('#main');
-  m.innerHTML=({vender:vVender,cuentas:vCuentas,caja:vCaja,clientes:vClientes,reportes:vReportes,menu:vMenu,ajustes:vAjustes}[S.view])();
+  m.innerHTML=({vender:vVender,cuentas:vCuentas,caja:vCaja,clientes:vClientes,reportes:vReportes,menu:vMenu,costeo:vCosteo,ajustes:vAjustes}[S.view])();
 }
 document.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending)render()},50));
 
@@ -613,11 +622,7 @@ function vVender(){
       <input class="in" id="f-nom" data-f="cliente.nombre" placeholder="Nombre" value="${h(o.cliente.nombre)}">`;
   const mesaGrid=`<div class="mesas" role="group" aria-label="Mesa">${Array.from({length:+S.aj.mesas||6},(_,i)=>i+1).map(n=>{const oc=mesaOcupada(n,o.id);
     return `<button class="mesa-b" data-act="mesa" data-n="${n}" aria-pressed="${String(o.mesa)===String(n)}" ${oc?'data-ocupada="1"':''}>Mesa ${n}${oc?'<small>Ocupada · abrir</small>':''}</button>`}).join('')}</div>`;
-  const fields=(o.tipo==='mesa'?`<div class="fields">${mesaGrid}${cliF}</div>`
-    :o.tipo==='mostrador'?`<div class="fields">${cliF}</div>`
-    :`<div class="fields">${cliF}
-      <input class="in wide" id="f-dir" data-f="cliente.dir" placeholder="Dirección" value="${h(o.cliente.dir)}">
-      <input class="in" id="f-env" data-f="envio" inputmode="decimal" placeholder="Envío $" value="${o.envio||''}"></div>`)+`<div id="fid">${fidHTML(o)}</div>`;
+  const fields=(o.tipo==='mostrador'?`<div class="fields">${cliF}</div>`:'')+`<div id="fid">${fidHTML(o)}</div>`;
   const t=totalOf(o),hasItems=o.items.length>0,pend=S.aj.comandaPrimero!==false&&o.items.some(l=>!l.enviado&&!l.regalo);
   return `${banner()}<div class="vender">
     <section class="catalog" aria-label="Productos">
@@ -628,7 +633,7 @@ function vVender(){
       <div class="cart-h">
         <div class="row" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
           <h2>${o.folio?'Folio #'+o.folio:'Nueva venta'}</h2>${o.guardada?'<span class="pill">Cuenta abierta</span>':''}</div>
-        <div class="seg" role="group" aria-label="Tipo de venta">${Object.entries(TIPOS).map(([k,v])=>`<button data-act="tipo" data-t="${k}" aria-pressed="${o.tipo===k}">${v}</button>`).join('')}</div>
+        ${modoHTML(o)}
         ${o.tipo==='mostrador'?ctasLlevar(o):''}
         ${fields}${o.tipo==='mesa'?platoBar(o):''}
       </div>
@@ -648,15 +653,20 @@ function vVender(){
 
 /* ---------- Cuentas abiertas ---------- */
 function vCuentas(){
-  const list=[...S.cuentas].sort((a,b)=>a.abierta-b.abierta);
+  const list=[...S.cuentas].filter(c=>c.tipo!=='pedido').sort((a,b)=>a.abierta-b.abierta);
+  const peds=[...S.cuentas].filter(c=>c.tipo==='pedido').sort((a,b)=>(a.horaEntrega||9e15)-(b.horaEntrega||9e15));
   const mins=t=>Math.max(0,Math.round((Date.now()-t)/60000));
+  const pedHTML=peds.length?`<h2>Pedidos por entregar</h2><div class="cards">${peds.map(c=>{const tarde=c.horaEntrega&&Date.now()>c.horaEntrega;return `<button class="card" data-act="abrir" data-id="${c.id}" style="${tarde?'border-color:var(--ketchup)':''}">
+      <div class="row"><h3>${h(c.cliente.nombre||'Pedido')}</h3><span class="pill num" style="${tarde?'background:var(--ketchup);color:#fff':''}">${c.horaEntrega?(tarde?'Atrasado · ':'')+hhmm(c.horaEntrega):'Sin hora'}</span></div>
+      <div class="muted">${c.entrega==='domicilio'?'A domicilio':'Recoge'} · ${c.items.reduce((a,l)=>a+l.qty,0)} producto(s)${c.horaPedido?' · pidió '+hhmm(c.horaPedido):''}</div>
+      <div class="row"><span class="label">Total</span><span class="amt num">${money(totalOf(c))}</span></div></button>`}).join('')}</div><h2>Mesas y cuentas</h2>`:'';
   return `<div class="page">${banner()}
-    <div class="page-h"><h1>Cuentas abiertas</h1><span class="muted">${list.length} abierta${list.length===1?'':'s'}</span></div>
-    ${list.length?`<div class="cards">${list.map(c=>`<button class="card" data-act="abrir" data-id="${c.id}">
+    <div class="page-h"><h1>Cuentas abiertas</h1><span class="muted">${list.length+peds.length} abierta${list.length+peds.length===1?'':'s'}</span></div>
+    ${pedHTML}${list.length?`<div class="cards">${list.map(c=>`<button class="card" data-act="abrir" data-id="${c.id}">
       <div class="row"><h3>${h(ordenLabel(c))}</h3><span class="pill num">#${c.folio||'-'}</span></div>
-      <div class="muted">${c.items.reduce((a,l)=>a+l.qty,0)} producto(s) · hace ${mins(c.abierta)} min</div>
+      <div class="muted">${c.items.reduce((a,l)=>a+l.qty,0)} producto(s) · hace ${mins(c.abierta)} min${+c.comensales?' · '+c.comensales+' comensales':''}</div>
       <div class="row"><span class="label">Total</span><span class="amt num">${money(totalOf(c))}</span></div></button>`).join('')}</div>`
-    :`<div class="panel empty">No hay mesas ni pedidos abiertos.<br>En Vender elige “Mesa” o “Pedido” y toca “Guardar cuenta” para dejarla abierta.</div>`}
+    :`<div class="panel empty">No hay mesas ni pedidos abiertos.<br>En Vender toca “Abrir mesa” o “Nuevo pedido” y luego “Guardar cuenta” para dejarla abierta.</div>`}
   </div>`;
 }
 
@@ -723,6 +733,7 @@ function vReportes(){
     <div class="two">
       <div class="panel"><h3>Por forma de pago</h3>${hb(byM,METODOS)}</div>
       <div class="panel"><h3>Por tipo de venta</h3>${hb(byT,TIPOS)}</div>
+      ${(()=>{const bm={};ok.filter(v=>v.tipo==='mesa').forEach(v=>{const k=v.mesero||'Sin mesero';bm[k]=(bm[k]||0)+v.total});return Object.keys(bm).length?`<div class="panel"><h3>Ventas por mesero</h3>${hb(bm,{})}</div>`:''})()}
     </div>
     <div class="panel"><h3>Lo más vendido</h3>
       ${top.length?`<div class="tablewrap"><table><thead><tr><th>Producto</th><th class="r">Piezas</th><th class="r">Importe</th></tr></thead><tbody>
@@ -821,6 +832,81 @@ function vClientes(){
 }
 
 /* ---------- Menú ---------- */
+function normMenu(raw){
+  const m=raw&&raw.menu?raw.menu:raw;if(!m||!Array.isArray(m.cats)||!Array.isArray(m.prods))throw new Error('El archivo no tiene categorías y productos');
+  const warn=[],slug=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'').slice(0,16)||'x';
+  const cats=m.cats.map((c,i)=>({id:String(c.id||slug(c.n)+i),n:String(c.n||c.nombre||'Categoría '+(i+1))}));
+  const grupos={};Object.entries(m.grupos||{}).forEach(([gid,g])=>{if(!g||!Array.isArray(g.o)){warn.push('grupo '+gid+' sin opciones');return}
+    const o=g.o.map(x=>typeof x==='string'?{n:x,p:0}:{n:String(x.n||''),p:+x.p||0}).filter(x=>x.n);
+    const gg={n:String(g.n||gid),t:['quitar','extra','opcion'].includes(g.t)?g.t:'opcion',min:Math.max(0,+g.min||0),max:Math.max(1,+g.max||1),o};
+    if(g.def!=null&&+g.def<o.length)gg.def=+g.def;if(g.mode==='max')gg.mode='max';if(Array.isArray(g.steps))gg.steps=g.steps.map(Number);if(g.extra!=null)gg.extra=+g.extra;grupos[gid]=gg});
+  const ids=new Set(),cids=new Set(cats.map(c=>c.id));
+  const prods=m.prods.map((x,i)=>{let id=String(x.id||slug(x.n)+i);while(ids.has(id))id+='_';ids.add(id);
+    let c=String(x.c||'');if(!cids.has(c)){warn.push((x.n||id)+': categoría no encontrada');c=cats[0]?.id||''}
+    const q={id,c,n:String(x.n||'Producto'),on:x.on!==false};if(x.d)q.d=String(x.d);
+    if(Array.isArray(x.pres)&&x.pres.length)q.pres=x.pres.map(r=>({n:String(r.n||''),p:+r.p||0}));else{q.p=+x.p||0;if(!(+x.p))warn.push(q.n+': sin precio')}
+    const g=(x.g||[]).filter(k=>{if(grupos[k])return true;warn.push(q.n+': grupo '+k+' no existe');return false});if(g.length)q.g=g;if(x.rev)q.rev=true;return q});
+  if(!prods.length)throw new Error('El archivo no trae productos');return {cats,grupos,prods,warn};
+}
+/* ===== Costeo ===== */
+const COST0=()=>({v:1,ind:0,meta:35,insumos:[],rec:{}});
+const UNI={kg:'kg',lt:'litro',pza:'pieza'},QU={kg:'g',lt:'ml',pza:'pza'};
+function insPer(i){if(!i)return 0;const base=i.u==='pza'?+i.c||0:(+i.c||0)/1000;const m=Math.min(95,Math.max(0,+i.m||0));return base/(1-m/100)}
+function linesCost(ls){let s=0,falta=[];(ls||[]).forEach(l=>{const i=S.cost.insumos.find(x=>x.id===l.i);if(!i)return;if(!(+i.c))falta.push(i.n);s+=insPer(i)*(+l.q||0)});return {s,falta}}
+function recCost(pid,pi){const r=S.cost.rec[pid];if(!r)return null;const a=linesCost(r.it),b=linesCost((r.add||{})[pi]);const dir=a.s+b.s+(+r.emp||0);const ind=dir*(+S.cost.ind||0)/100;
+  return {dir,ind,tot:dir+ind,falta:[...new Set([...a.falta,...b.falta])]}}
+function precioDe(p,pi){return p.pres?+(p.pres[pi]?.p||0):+p.p||0}
+async function saveCost(){try{await Store.set('config','costeo',S.cost)}catch(e){toast('No se guardó el costeo')}}
+function seedGuac(){const I=(id,n,u,c,m=0)=>({id,n,u,c,m});
+  const ins=[I('carne','Carne molida de res','kg',155),I('panp','Pan parrillero','pza',6.23),I('panb','Pan brioche','pza',11),I('qam','Queso americano (rebanada)','pza',2.12),
+    I('toc','Tocino','kg',151.67),I('mant','Mantequilla (porción)','pza',1),I('verd','Lechuga, jitomate y cebolla (porción)','pza',3.7),I('pina','Piña en almíbar (rebanada)','pza',7.63),I('ceb','Cebolla blanca','kg',59.5),I('papas','Papas a la francesa','kg',0)];
+  const base=[{i:'carne',q:115},{i:'panp',q:1},{i:'qam',q:1},{i:'mant',q:1},{i:'verd',q:1}],papas={'1':[{i:'papas',q:150}]};
+  return {...COST0(),insumos:ins,rec:{clasica:{it:clone(base),emp:4.22,add:clone(papas)},tocino:{it:[...clone(base),{i:'toc',q:45}],emp:4.22,add:clone(papas)},pina:{it:[...clone(base),{i:'pina',q:1}],emp:4.22,add:clone(papas)}}}}
+function vCosteo(){
+  const C=S.cost,meta=+C.meta||35;
+  const color=pc=>pc<=meta?'var(--pickle)':pc<=meta+8?'var(--cheddar)':'var(--ketchup)';
+  const filas=[];S.menu.prods.forEach(p=>{if(!C.rec[p.id])return;(p.pres||[null]).forEach((pr,pi)=>{const rc=recCost(p.id,String(pi)),pv=precioDe(p,pi);if(!rc)return;
+    const pc=pv?rc.tot/pv*100:0;filas.push({p,pr,pi,rc,pv,pc,sug:Math.ceil(rc.tot/(meta/100)/5)*5})})});
+  const sel=S.cprod&&prod(S.cprod)?S.cprod:(Object.keys(C.rec)[0]||S.menu.prods[0]?.id);const sp=prod(sel);const r=C.rec[sel]||{it:[],emp:0,add:{}};
+  const insOpts=v=>`<option value="">Elige insumo…</option>`+C.insumos.map(i=>`<option value="${i.id}" ${i.id===v?'selected':''}>${h(i.n)}</option>`).join('');
+  const lineRows=(ls,path)=>ls.map((l,k)=>{const i=C.insumos.find(x=>x.id===l.i);return `<tr><td><select class="in" data-cs="${path}.${k}.i">${insOpts(l.i)}</select></td>
+    <td class="r"><input class="in num" style="max-width:110px" inputmode="decimal" data-cs="${path}.${k}.q" value="${h(l.q)}"></td><td>${i?QU[i.u]:''}</td>
+    <td class="r num">${i?(+i.c?money(insPer(i)*(+l.q||0)):'<span style="color:var(--ketchup)">falta costo</span>'):''}</td><td class="r"><button class="btn small" data-act="cs-del-line" data-path="${path}" data-k="${k}" aria-label="Quitar">✕</button></td></tr>`}).join('');
+  const tabla=(ls,path,titulo)=>`<div><span class="label">${titulo}</span><div class="tablewrap"><table><thead><tr><th>Insumo</th><th class="r">Cantidad</th><th></th><th class="r">Costo</th><th></th></tr></thead><tbody>${lineRows(ls||[],path)}</tbody></table></div>
+    <button class="btn small" data-act="cs-add-line" data-path="${path}">＋ Ingrediente</button></div>`;
+  return `<div class="page">
+    <div class="page-h"><h1>Costeo</h1><span class="muted">Meta de costo: ${meta}% del precio</span></div>
+    ${!C.insumos.length?`<div class="panel"><h3>Empieza aquí</h3><p class="muted" style="margin:0">1) Da de alta tus insumos con su costo de compra. 2) Arma la receta de cada producto. Kaja calcula el costo, tu ganancia y un precio sugerido.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="cs-add-ins">＋ Primer insumo</button>${prod('clasica')?'<button class="btn primary" data-act="cs-seed">Cargar costos de Guacamole</button>':''}</div></div>`:''}
+    ${filas.length?`<div class="panel"><h3>Margen por producto</h3><div class="tablewrap"><table><thead><tr><th>Producto</th><th class="r">Costo</th><th class="r">Precio</th><th class="r">% costo</th><th class="r">Ganancia</th><th class="r">Precio para ${meta}%</th></tr></thead><tbody>
+      ${filas.map(f=>`<tr><td>${h(f.p.n)}${f.pr?' <span class="muted">· '+h(f.pr.n)+'</span>':''}${f.rc.falta.length?`<br><small style="color:var(--ketchup)">Falta costo: ${h(f.rc.falta.join(', '))}</small>`:''}</td>
+        <td class="r num">${money(f.rc.tot)}</td><td class="r num">${money(f.pv)}</td><td class="r num" style="color:${color(f.pc)};font-weight:700">${f.pc.toFixed(0)}%</td><td class="r num">${money(f.pv-f.rc.tot)}</td><td class="r num">${f.pc>meta?money(f.sug):'<span class="muted">ok</span>'}</td></tr>`).join('')}
+      </tbody></table></div><p class="muted" style="margin:0;font-size:13px">Verde: dentro de tu meta · Amarillo: hasta 8 puntos arriba · Rojo: más caro de lo que conviene.${+C.ind?' Incluye '+C.ind+'% de indirectos.':''}</p></div>`:''}
+    ${C.insumos.length?`<div class="panel"><div class="page-h"><h3>Receta</h3><select class="in" style="width:auto;min-width:240px" data-cs-prod="1" aria-label="Producto">${S.menu.prods.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${C.rec[p.id]?'● ':''}${h(p.n)}</option>`).join('')}</select></div>
+      ${tabla(r.it,'rec.'+sel+'.it',sp&&sp.pres?'Lleva siempre':'Ingredientes')}
+      ${sp&&sp.pres?sp.pres.map((pr,pi)=>pi?tabla((r.add||{})[pi],'rec.'+sel+'.add.'+pi,'Además, solo en “'+h(pr.n)+'”'):'').join(''):''}
+      <div class="form"><label><span class="label">Empaque y desechables por pieza $</span><input class="in num" inputmode="decimal" data-cs="rec.${sel}.emp" value="${h(r.emp||0)}"></label>
+        <div class="grp"><span class="label">Costo de ${h(sp?.n||'')}</span><span class="num" style="font:600 22px/1.3 var(--mono)">${C.rec[sel]?money(recCost(sel,'0').tot):'—'}</span></div></div>
+      ${C.rec[sel]?`<div><button class="btn small" data-act="cs-del-rec" data-pid="${sel}">Borrar receta de este producto</button></div>`:''}
+    </div>
+    <div class="panel"><div class="page-h"><h3>Insumos</h3><span class="muted">${C.insumos.length} · cambia el costo y todo se recalcula</span></div>
+      <div class="tablewrap"><table><thead><tr><th>Insumo</th><th>Se compra por</th><th class="r">Costo</th><th class="r">Merma %</th><th class="r">Recetas</th><th></th></tr></thead><tbody>
+      ${C.insumos.map((i,k)=>{const uso=Object.values(C.rec).filter(r=>[...(r.it||[]),...Object.values(r.add||{}).flat()].some(l=>l.i===i.id)).length;return `<tr>
+        <td><input class="in" data-cs="insumos.${k}.n" value="${h(i.n)}"></td>
+        <td><select class="in" data-cs="insumos.${k}.u">${Object.entries(UNI).map(([u,n])=>`<option value="${u}" ${i.u===u?'selected':''}>${n}</option>`).join('')}</select></td>
+        <td class="r"><input class="in num" style="max-width:120px;${+i.c?'':'border-color:var(--ketchup)'}" inputmode="decimal" data-cs="insumos.${k}.c" value="${h(i.c)}"></td>
+        <td class="r"><input class="in num" style="max-width:80px" inputmode="decimal" data-cs="insumos.${k}.m" value="${h(i.m||0)}"></td>
+        <td class="r num">${uso}</td><td class="r"><button class="btn small" data-act="cs-del-ins" data-k="${k}" ${uso?'disabled title="Se usa en recetas"':''} aria-label="Borrar insumo">✕</button></td></tr>`}).join('')}
+      </tbody></table></div><div><button class="btn small" data-act="cs-add-ins">＋ Insumo</button></div>
+      <p class="muted" style="margin:0;font-size:13px">Costo = lo que pagas por 1 kg, 1 litro o 1 pieza. Merma = lo que se pierde al limpiar o cocinar (ej. cebolla caramelizada ~70%).</p></div>
+    <div class="panel"><h3>Ajustes de costeo</h3><div class="form">
+      <label><span class="label">Indirectos (% sobre el costo: gas, luz, aceite…)</span><input class="in num" inputmode="decimal" data-cs="ind" value="${h(C.ind||0)}"></label>
+      <label><span class="label">Meta de costo (% del precio)</span><input class="in num" inputmode="decimal" data-cs="meta" value="${h(meta)}"></label></div></div>`:''}
+  </div>`;
+}
+function csSet(path,val){const ks=path.split('.');let o=S.cost;for(let i=0;i<ks.length-1;i++){const k=ks[i];if(o[k]==null)o[k]=/^\d+$/.test(ks[i+1])&&ks[i]!=='add'?[]:{};o=o[k]}
+  const last=ks[ks.length-1];o[last]=['n','u','i'].includes(last)?val:(val===''?0:+String(val).replace(',','.')||0)}
+function csGet(path){return path.split('.').reduce((o,k)=>o==null?o:o[k],S.cost)}
 function vMenu(){
   const M=S.menuDraft||(S.menuDraft=clone(S.menu));
   const rows=M.cats.map(c=>`<div class="panel"><h3>${h(c.n)}</h3>
@@ -841,7 +927,9 @@ function vMenu(){
       <button class="btn small danger" data-act="delopt" data-g="${gid}" data-j="${j}" aria-label="Eliminar ${h(op.n)}">✕</button></div>`).join('')}
     <div><button class="btn small" data-act="addopt" data-g="${gid}">+ Opción</button></div></div>`).join('');
   return `<div class="page">${banner()}<div class="page-h"><h1>Menú</h1>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="menu-reset">Deshacer cambios</button><button class="btn primary" data-act="menu-save">Guardar menú</button></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn" for="menu-file">Importar menú…</label><input type="file" id="menu-file" accept=".json,application/json" hidden><button class="btn" data-act="menu-export">Exportar menú</button><button class="btn" data-act="menu-reset">Deshacer cambios</button><button class="btn primary" data-act="menu-save">Guardar menú</button></div></div>
+    ${S.menuImport?`<div class="banner info" style="flex-wrap:wrap"><span><b>Menú listo para importar:</b> ${S.menuImport.cats.length} categorías, ${S.menuImport.prods.length} productos, ${Object.keys(S.menuImport.grupos).length} grupos de opciones.${S.menuImport.warn.length?' Avisos: '+h(S.menuImport.warn.slice(0,3).join(' · ')):''} Reemplaza el menú actual; las ventas no se tocan.</span>
+      <span style="display:flex;gap:8px"><button class="btn small danger" data-act="menu-import-si">Reemplazar menú</button><button class="btn small" data-act="menu-import-no">Cancelar</button></span></div>`:''}
     <p class="muted" style="margin:0">Los productos marcados “revisar” tienen precio estimado: confírmalos antes de usarlos.</p>
     ${rows}<h2>Extras, salsas y quitar ingredientes</h2><div class="two">${grps}</div></div>`;
 }
@@ -888,6 +976,19 @@ function vAjustes(){
       <div style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(PLANTILLAS).map(([k,v])=>S.tpl===k?`<button class="btn danger" data-act="tpl-si" data-k="${k}" data-nuevo="1">${v.n}: negocio nuevo</button><button class="btn" data-act="tpl-si" data-k="${k}">${v.n}: solo menú</button><button class="btn" data-act="tpl" data-k="">Cancelar</button>`:`<button class="btn" data-act="tpl" data-k="${k}">${v.n}</button>`).join('')}</div><div><button class="btn small" data-act="inst-out">Salir de instalador</button></div>`
       :`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end"><label style="flex:1;min-width:200px"><span class="label">Clave de instalador</span><input class="in" id="inst-key" type="password" autocomplete="off"></label><button class="btn" data-act="inst">Entrar</button></div>`}
     </div>
+    <div class="panel"><h3>Menú en línea y pedidos por WhatsApp</h3>
+      <p class="muted" style="margin:0">Tus clientes ven tu menú en el celular, arman su pedido y te llega por WhatsApp al ${a.tel?h(a.tel):'teléfono de Ajustes → Ticket'}. Luego lo pegas aquí con “Pegar pedido de WhatsApp” en Vender → Pedido.</p>
+      <div class="form">
+        <label><span class="label">Horario (sale en el menú)</span><input class="in" data-a="webHorario" value="${h(a.webHorario||'')}" placeholder="Lun a Dom 1 a 11 pm"></label>
+        <label><span class="label">Costo de envío a domicilio</span><input class="in num" data-a="webEnvio" inputmode="decimal" value="${h(a.webEnvio||0)}"></label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-act="web-export">Descargar archivo del menú en línea</button><span class="muted" style="font-size:13px">Súbelo a GitHub junto a la app. Enlace para tus clientes: <b style="user-select:all">${h(webUrl(a))}</b></span></div>
+    </div>
+    <div class="panel"><h3>Meseros</h3>
+      <p class="muted" style="margin:0">Al abrir una mesa se elige quién la atiende. En Reportes verás las ventas de cada uno. Recuerda tocar “Guardar ajustes”.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${(a.meseros||[]).map(n=>`<span class="chip" style="display:inline-flex;gap:6px;align-items:center">${h(n)}<button class="btn small" data-act="mesero-del" data-v="${h(n)}" aria-label="Quitar ${h(n)}">✕</button></span>`).join('')||'<span class="muted">Sin meseros todavía.</span>'}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><input class="in" id="mesero-n" placeholder="Nombre del mesero" style="max-width:280px"><button class="btn" data-act="mesero-add">Agregar</button></div>
+    </div>
     <div class="panel"><h3>Mesas</h3><div class="form">
       <label><span class="label">Número de mesas</span><input class="in num" id="aj-mesas" data-a="mesas" inputmode="numeric" value="${h(a.mesas)}"></label></div></div>
     <div class="panel"><h3>Programa de lealtad</h3>
@@ -912,6 +1013,7 @@ function vAjustes(){
     <div class="panel"><h3>Respaldo de ventas</h3>
       <p class="muted" style="margin:0">Todo se guarda en este equipo, sin internet. Si el equipo se pierde o se descompone, solo se recupera con un respaldo. Descárgalo al cerrar cada día y guárdalo en Google Drive o mándatelo por WhatsApp.</p>
       <p style="margin:0">Último respaldo: <b>${lastBackup()?fecha(lastBackup())+' '+hora(lastBackup()):'nunca'}</b></p>
+      <label class="check"><input type="checkbox" data-ac="respCorte" ${a.respCorte!==false?'checked':''}>Descargar el respaldo automáticamente cada vez que hago el corte</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="respaldo">Descargar respaldo</button>
         <label class="btn" for="rest-file">Restaurar respaldo…</label><input type="file" id="rest-file" accept=".json,application/json" hidden></div>
       ${S.restore?`<div class="banner"><span>Esto reemplaza TODO lo de este equipo por el respaldo del ${fecha(S.restore.fecha)} (${Object.keys(S.restore.data?.ventas||{}).length} ventas).</span><button class="btn small danger" data-act="restore-si">Sí, reemplazar</button><button class="btn small" data-act="restore-no">Cancelar</button></div>`:''}
@@ -919,6 +1021,9 @@ function vAjustes(){
 }
 
 /* ===================== Modales ===================== */
+function dlgRead(){const m=S.modal;if(!m)return;const v=id=>{const el=$('#'+id);return el?el.value:null};
+  if(m.k==='mesa'){const a=v('dm-tel'),b=v('dm-nom');if(a!=null)m.tel=a;if(b!=null)m.nom=b}
+  if(m.k==='pedido'){[['dp-nom','nom'],['dp-tel','tel'],['dp-dir','dir'],['dp-env','envio'],['dp-hora','hora']].forEach(([id,k])=>{const x=v(id);if(x!=null)m[k]=x})}}
 function renderModal(){
   const m=S.modal,el=$('#modal');
   if(!m){el.innerHTML='';return}
@@ -964,6 +1069,38 @@ function renderModal(){
       <p class="muted" style="margin:0;font-size:13px">Queda registrado en la bitácora de Reportes.</p>
     </div><div class="sheet-f"><button class="btn" data-act="close">Regresar</button><span class="grow"></span><button class="btn danger" data-act="auth-ok" style="border-color:var(--ketchup)">Confirmar</button></div></div>`;
   }
+  if(m.k==='mesa'){
+    const ms=S.aj.meseros||[];
+    inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Abrir mesa" style="max-width:640px"><div class="sheet-b">
+      <div class="page-h"><h2>${m.edit?'Cambiar datos de la mesa':'Abrir mesa'}</h2></div>
+      <div><span class="label">Mesero ${ms.length?'· obligatorio':''}</span>${ms.length?`<div class="opts">${ms.map(n=>`<button class="opt" data-act="dm-mesero" data-v="${h(n)}" aria-pressed="${m.mesero===n}">${h(n)}</button>`).join('')}</div>`:'<p class="muted" style="margin:4px 0 0">Aún no hay meseros. Agrégalos en Ajustes → Meseros.</p>'}</div>
+      <div><span class="label">Mesa · obligatorio</span><div class="mesas">${Array.from({length:+S.aj.mesas||6},(_,i)=>String(i+1)).map(n=>{const oc=mesaOcupada(n,S.orden.id);
+        return `<button class="mesa-b" data-act="${oc?'dm-ocupada':'dm-mesa'}" data-n="${n}" aria-pressed="${m.mesa===n}" ${oc?'data-ocupada="1"':''}>Mesa ${n}${oc?'<small>Ocupada · abrir</small>':''}</button>`}).join('')}</div></div>
+      <div><span class="label">Comensales (se crea un plato por cada uno)</span><div class="qty" style="width:max-content"><button data-act="dm-com" data-d="-1" aria-label="Menos">−</button><span class="num">${m.com}</span><button data-act="dm-com" data-d="1" aria-label="Más">+</button></div></div>
+      <div class="form"><label><span class="label">Teléfono del cliente (para sus sellos)</span><input class="in" id="dm-tel" inputmode="tel" value="${h(m.tel)}"></label>
+        <label><span class="label">Nombre</span><input class="in" id="dm-nom" value="${h(m.nom)}"></label></div>
+    </div><div class="sheet-f"><button class="btn" data-act="close">Cancelar</button><span class="grow"></span><button class="btn primary big" data-act="dm-ok">${m.edit?'Guardar cambios':'Abrir mesa'}</button></div></div>`;
+  }
+  if(m.k==='pedido'){
+    inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Nuevo pedido" style="max-width:640px"><div class="sheet-b">
+      <div class="page-h"><h2>${m.edit?'Editar pedido':'Nuevo pedido'}</h2><span class="muted">Pedido a las ${hhmm(m.horaPedido)}</span></div>
+      ${m.edit?'':`<details ${m.items?'open':''}><summary style="cursor:pointer;font-weight:600">¿Llegó por WhatsApp? Pega el mensaje</summary>
+        <div style="display:grid;gap:8px;margin-top:8px"><textarea class="in" id="dp-wa" rows="4" placeholder="Pega aquí el mensaje del cliente"></textarea><div><button class="btn small" data-act="dp-wa">Leer mensaje</button>${m.items?` <span class="chip">${m.items.length} producto(s) listos para cargar</span>`:''}</div></div></details>`}
+      <div class="form"><label><span class="label">Nombre del cliente</span><input class="in" id="dp-nom" value="${h(m.nom)}"></label>
+        <label><span class="label">Teléfono</span><input class="in" id="dp-tel" inputmode="tel" value="${h(m.tel)}"></label></div>
+      <div class="seg" role="group" aria-label="Entrega" style="grid-template-columns:1fr 1fr">${[['recoger','Pasa a recoger'],['domicilio','A domicilio']].map(([k,v])=>`<button data-act="dp-ent" data-v="${k}" aria-pressed="${m.ent===k}">${v}</button>`).join('')}</div>
+      ${m.ent==='domicilio'?`<div class="form"><label style="grid-column:1/-1"><span class="label">Dirección</span><input class="in" id="dp-dir" value="${h(m.dir)}"></label><label><span class="label">Envío $</span><input class="in num" id="dp-env" inputmode="decimal" value="${h(m.envio)}"></label></div>`:''}
+      <div class="form"><label><span class="label">${m.ent==='domicilio'?'Hora de entrega':'Hora en que pasa a recoger'}</span><input class="in" id="dp-hora" type="time" value="${h(m.hora)}"></label>
+        ${m.pago?`<div class="grp"><span class="label">Pago</span><span>${h(m.pago)}</span></div>`:''}</div>
+    </div><div class="sheet-f"><button class="btn" data-act="close">Cancelar</button><span class="grow"></span><button class="btn primary big" data-act="dp-ok">${m.edit?'Guardar cambios':'Crear pedido'}</button></div></div>`;
+  }
+  if(m.k==='wapaste'){
+    inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Pegar pedido de WhatsApp" style="max-width:560px"><div class="sheet-b">
+      <div class="page-h"><h2>Pegar pedido de WhatsApp</h2></div>
+      <p class="muted" style="margin:0">En WhatsApp mantén presionado el mensaje del cliente → Copiar. Luego pégalo aquí.</p>
+      <textarea class="in" id="wa-txt" rows="8" placeholder="Pega aquí el mensaje completo"></textarea>
+    </div><div class="sheet-f"><button class="btn" data-act="close">Cancelar</button><span class="grow"></span><button class="btn primary big" data-act="wa-load">Cargar pedido</button></div></div>`;
+  }
   if(m.k==='print'){
     inner=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${h(m.titulo)}" style="max-width:520px"><div class="sheet-b">
       <div class="page-h"><h2>${h(m.titulo)}</h2></div>
@@ -1004,7 +1141,13 @@ function addFromSheet(m){
   }
   return true;
 }
-function platoBar(o){const mx=Math.max(1,o.plato||1,...o.items.map(l=>l.plato||1));const cur=o.plato||1;
+function modoHTML(o){
+  if(o.tipo==='mesa')return `<div class="modo"><div><b>Mesa ${h(o.mesa||'?')}</b><span class="muted">${[o.mesero,+o.comensales?o.comensales+' comensal'+(o.comensales==1?'':'es'):'',o.cliente.nombre].filter(Boolean).map(h).join(' · ')}</span></div><button class="btn small" data-act="dlg-mesa" data-edit="1">Cambiar</button></div>`;
+  if(o.tipo==='pedido'){const tarde=o.horaEntrega&&Date.now()>o.horaEntrega;return `<div class="modo"><div><b>Pedido${o.cliente.nombre?' · '+h(o.cliente.nombre):''}</b><span class="muted">${o.entrega==='domicilio'?'A domicilio':'Recoge'}${o.horaEntrega?` <b style="color:${tarde?'var(--ketchup)':'var(--cheddar)'}">${hhmm(o.horaEntrega)}</b>`:''}${o.horaPedido?' · pidió '+hhmm(o.horaPedido):''}</span></div><button class="btn small" data-act="dlg-pedido" data-edit="1">Editar</button></div>`}
+  const libre=!o.items.length&&!o.guardada;
+  return `<div class="modo-b">${libre?'':'<span class="pill">Venta directa</span>'}<button class="btn small" data-act="dlg-mesa">＋ Abrir mesa</button><button class="btn small" data-act="dlg-pedido">＋ Nuevo pedido</button></div>`;
+}
+function platoBar(o){const mx=Math.max(1,+o.comensales||0,o.plato||1,...o.items.map(l=>l.plato||1));const cur=o.plato||1;
   return `<div class="ctabs" role="group" aria-label="Plato o persona"><span class="label" style="align-self:center">Agregar a</span>${Array.from({length:mx},(_,i)=>i+1).map(n=>`<button data-act="plato" data-n="${n}" aria-pressed="${cur===n}">Plato ${n}</button>`).join('')}<button data-act="plato" data-n="${mx+1}">＋ Plato</button></div>`}
 function ctasLlevar(o){
   const ab=S.cuentas.filter(c=>c.tipo==='mostrador').sort((a,b)=>a.abierta-b.abierta);
@@ -1078,7 +1221,7 @@ document.addEventListener('click',async e=>{
   if(a!=='limpiar')S.limpiar=false;
   switch(a){
     case 'nav':{const v=b.dataset.v;
-      if((v==='menu'||v==='ajustes')&&S.aj.pinHash&&!S.adminOk){pedirAuth({titulo:'Entrar a '+(v==='menu'?'Menú':'Ajustes'),motivo:false,ok:()=>{S.adminOk=true;S.view=v;S.menuDraft=null;S.ajDraft=null;render()}});break}
+      if((v==='menu'||v==='ajustes'||v==='costeo')&&S.aj.pinHash&&!S.adminOk){pedirAuth({titulo:'Entrar a '+({menu:'Menú',ajustes:'Ajustes',costeo:'Costeo'}[v]),motivo:false,ok:()=>{S.adminOk=true;S.view=v;S.menuDraft=null;S.ajDraft=null;render()}});break}
       if(v!=='menu'&&v!=='ajustes')S.adminOk=false;
       S.view=v;S.menuDraft=null;S.ajDraft=null;S.anular=null;S.instOk=false;S.tpl=null;render();break}
     case 'cat':S.cat=b.dataset.id;render();break;
@@ -1171,9 +1314,15 @@ document.addEventListener('click',async e=>{
       d.align('c').line('='.repeat(36)).bold(1).line('Cancelaciones').bold(0).align('l');
       d.lr('Ventas canceladas ('+anul.length+')',money(anul.reduce((x,v)=>x+v.total,0)));
       const bh=S.bit.filter(x=>x.t>=hA&&x.t<hB);const cc=bh.filter(x=>x.accion==='Cuenta cancelada'),pq=bh.filter(x=>x.accion==='Producto quitado'),cj=bh.filter(x=>x.accion==='Cajón abierto sin venta');
-      d.lr('Cuentas canceladas ('+cc.length+')',money(cc.reduce((x,v)=>x+(+v.monto||0),0))).lr('Productos quitados de cocina ('+pq.length+')',money(pq.reduce((x,v)=>x+(+v.monto||0),0))).lr('Cajón abierto sin venta',String(cj.length));
+      const pf=bh.filter(x=>x.accion==='PIN incorrecto'),so=bh.filter(x=>x.accion==='Salida de efectivo');
+      d.lr('Cuentas canceladas ('+cc.length+')',money(cc.reduce((x,v)=>x+(+v.monto||0),0))).lr('Productos quitados de cocina ('+pq.length+')',money(pq.reduce((x,v)=>x+(+v.monto||0),0))).lr('Cajón abierto sin venta',String(cj.length)).lr('Intentos con PIN incorrecto',String(pf.length));
+      const det=[...bh].filter(x=>x.accion!=='Salida de efectivo'||true).sort((a,b)=>a.t-b.t);
+      if(det.length){d.align('c').line('='.repeat(36)).bold(1).line('Detalle de acciones con PIN').bold(0).align('l');
+        det.forEach(x=>{d.bold(1).para(hora(x.t)+' '+x.accion+(x.folio?' #'+x.folio:'')+(+x.monto?' '+money(+x.monto):'')).bold(0);if(x.detalle)d.para('  '+x.detalle);if(x.motivo)d.para('  Motivo: '+x.motivo)})}
+      if(pf.length>=3)d.align('c').bold(1).para('ATENCION: '+pf.length+' intentos con PIN incorrecto hoy').bold(0).align('l');
       d.feed(3).cut();
       openPrint('Corte de caja',d);
+      if(S.aj.respCorte!==false)setTimeout(()=>{try{descargarRespaldo();toast('Respaldo del día descargado en la tablet')}catch(e){}},1500);
       try{await Store.set('cortes',uid(),c);S.contado='';toast('Corte guardado')}catch(e){toast('No se guardó el corte: revisa la conexión')}
       render();break}
     case 'csv':exportCSV();break;
@@ -1195,7 +1344,7 @@ document.addEventListener('click',async e=>{
     case 'auth-mot':S.modal.mot=b.dataset.v;renderModal();break;
     case 'auth-ok':{const mm=S.modal;
       if(mm.motivo&&!String(mm.mot||'').trim()){toast('Escribe el motivo');break}
-      if(S.aj.pinHash){const v=($('#a-pin')||{}).value||'';if(await sha(v)!==S.aj.pinHash){toast('PIN incorrecto');const n=$('#a-pin');if(n){n.value='';n.focus()}break}}
+      if(S.aj.pinHash){const v=($('#a-pin')||{}).value||'';if(await sha(v)!==S.aj.pinHash){toast('PIN incorrecto. El intento quedó registrado');try{await Store.set('bitacora',uid(),{t:Date.now(),accion:'PIN incorrecto',detalle:mm.titulo||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:''})}catch(e){}const n=$('#a-pin');if(n){n.value='';n.focus()}break}}
       S.modal=null;renderModal();
       if(mm.accion){try{await Store.set('bitacora',uid(),{t:Date.now(),accion:mm.accion,detalle:mm.detalle||'',folio:mm.folio||null,monto:+mm.monto||0,motivo:String(mm.mot||'').trim()})}catch(e){}}
       await mm.ok(String(mm.mot||'').trim());break}
@@ -1235,6 +1384,55 @@ document.addEventListener('click',async e=>{
     case 'addopt':S.menuDraft.grupos[b.dataset.g].o.push({n:'Nueva opción',p:0});render();break;
     case 'delopt':S.menuDraft.grupos[b.dataset.g].o.splice(+b.dataset.j,1);render();break;
     case 'menu-reset':S.menuDraft=null;render();break;
+    case 'web-export':{const a=S.ajDraft||S.aj;const data={kaja:'web',v:1,negocio:a.negocio,wa:a.tel,dir:a.dir,horario:a.webHorario||'',envio:+a.webEnvio||0,menu:S.menu};
+      saveFile('menu-'+webSlug(a)+'.json',JSON.stringify(data),'application/json');toast('Archivo listo: súbelo a GitHub');break}
+    case 'dlg-mesa':{if(b.dataset.edit){S.modal={k:'mesa',edit:true,mesero:o.mesero||'',mesa:String(o.mesa||''),com:+o.comensales||1,tel:o.cliente.tel||'',nom:o.cliente.nombre||''}}
+      else{if(o.items.length&&!o.guardada){toast('Primero cobra, guarda o descarta la venta actual');break}S.modal={k:'mesa',mesero:'',mesa:'',com:2,tel:'',nom:''}}renderModal();break}
+    case 'dm-mesero':dlgRead();S.modal.mesero=b.dataset.v;renderModal();break;
+    case 'dm-mesa':dlgRead();S.modal.mesa=b.dataset.n;renderModal();break;
+    case 'dm-com':dlgRead();S.modal.com=Math.min(30,Math.max(1,S.modal.com+ +b.dataset.d));renderModal();break;
+    case 'dm-ocupada':{const c=mesaOcupada(b.dataset.n,o.id);if(!c)break;if(S.modal.edit){toast('Esa mesa está ocupada');break}
+      if(o.guardada){try{await Store.set('cuentas',o.id,o)}catch(e){toast('No se guardó la cuenta actual');break}}
+      S.orden={...newOrden(),...clone(c),guardada:true};S.modal=null;renderModal();render();toast('Cuenta de Mesa '+c.mesa+' abierta');break}
+    case 'dm-ok':{dlgRead();const m=S.modal,ms=S.aj.meseros||[];
+      if(ms.length&&!m.mesero){toast('Elige el mesero');break}if(!m.mesa){toast('Elige la mesa');break}
+      const tk=telKey(m.tel);if(tk&&!m.nom)m.nom=cliente(tk)?.nombre||'';
+      if(!m.edit){if(o.guardada){try{await Store.set('cuentas',o.id,o)}catch(e){toast('No se guardó la cuenta actual');break}}S.orden=newOrden('mesa');S.orden.plato=1}
+      const x=S.orden;x.mesa=m.mesa;x.mesero=m.mesero;x.comensales=m.com;x.cliente.tel=m.tel.trim();x.cliente.nombre=m.nom.trim();
+      if(x.guardada){try{await Store.set('cuentas',x.id,x)}catch(e){}}
+      S.modal=null;renderModal();render();if(!m.edit)toast('Mesa '+m.mesa+' abierta'+(m.mesero?' · '+m.mesero:''));break}
+    case 'dlg-pedido':{const pad=n=>String(n).padStart(2,'0');
+      if(b.dataset.edit){const d=o.horaEntrega?new Date(o.horaEntrega):null;S.modal={k:'pedido',edit:true,horaPedido:o.horaPedido||o.abierta,nom:o.cliente.nombre||'',tel:o.cliente.tel||'',ent:o.entrega||'recoger',dir:o.cliente.dir||'',envio:o.envio||0,hora:d?pad(d.getHours())+':'+pad(d.getMinutes()):'',pago:o.notaPago||''}}
+      else{if(o.items.length&&!o.guardada){toast('Primero cobra, guarda o descarta la venta actual');break}S.modal={k:'pedido',horaPedido:Date.now(),nom:'',tel:'',ent:'recoger',dir:'',envio:+S.aj.webEnvio||0,hora:'',items:null,pago:''}}
+      renderModal();break}
+    case 'dp-ent':dlgRead();S.modal.ent=b.dataset.v;renderModal();break;
+    case 'dp-wa':{dlgRead();let c;try{c=parseKaja(($('#dp-wa')||{}).value)}catch(err){toast(err.message);break}
+      const m=S.modal;m.nom=c.n||m.nom;m.ent=c.e==='domicilio'?'domicilio':'recoger';m.dir=c.d||'';m.pago=c.pg?(c.pg+(c.c?' (paga con '+c.c+')':'')):'';m.items=c.i||[];renderModal();toast('Mensaje leído: '+m.items.length+' producto(s)');break}
+    case 'dp-ok':{dlgRead();const m=S.modal;if(!m.nom.trim()){toast('Escribe el nombre del cliente');break}
+      let he=null;if(m.hora){const [H,M]=m.hora.split(':').map(Number);const d=new Date();d.setHours(H,M,0,0);he=d.getTime()}
+      if(!m.edit){if(o.guardada){try{await Store.set('cuentas',o.id,o)}catch(e){toast('No se guardó la cuenta actual');break}}S.orden=newOrden('pedido');S.orden.horaPedido=m.horaPedido}
+      const x=S.orden;x.cliente.nombre=m.nom.trim();x.cliente.tel=m.tel.trim();x.entrega=m.ent;x.cliente.dir=m.ent==='domicilio'?m.dir.trim():'';x.envio=m.ent==='domicilio'?(+m.envio||0):0;x.horaEntrega=he;if(m.pago)x.notaPago=m.pago;
+      const fallos=[];(m.items||[]).forEach(([pid,pres,sel,q,nota])=>{if(!prod(pid)){fallos.push(pid);return}if(!addFromSheet({pid,pres,sel:sel||{},qty:+q||1,nota:nota||''}))fallos.push(prod(pid).n)});
+      if(x.guardada){try{await Store.set('cuentas',x.id,x)}catch(e){}}
+      S.modal=null;renderModal();render();toast(fallos.length?'Pedido creado, revisa: '+fallos.join(', '):(m.edit?'Pedido actualizado':'Pedido creado'));break}
+    case 'mesero-add':{const el=$('#mesero-n'),v=(el&&el.value||'').trim();if(!v)break;const a=S.ajDraft;a.meseros=[...(a.meseros||[]).filter(x=>x!==v),v];render();break}
+    case 'mesero-del':{const a=S.ajDraft;a.meseros=(a.meseros||[]).filter(x=>x!==b.dataset.v);render();break}
+    case 'wa-paste':S.modal={k:'wapaste'};renderModal();break;
+    case 'wa-load':{let c;try{c=parseKaja(($('#wa-txt')||{}).value)}catch(err){toast(err.message);break}
+      const o=S.orden;o.cliente.nombre=c.n||'';o.cliente.dir=c.e==='domicilio'?(c.d||''):'Pasa a recoger';o.envio=c.e==='domicilio'?(+S.aj.webEnvio||0):0;
+      const fallos=[];(c.i||[]).forEach(([pid,pres,sel,q,nota])=>{if(!prod(pid)){fallos.push(pid);return}const ok=addFromSheet({pid,pres,sel:sel||{},qty:+q||1,nota:nota||''});if(!ok)fallos.push(prod(pid).n)});
+      o.notaPago=c.pg?(c.pg+(c.c?' (paga con '+c.c+')':'')):'';
+      S.modal=null;renderModal();render();toast(fallos.length?'Cargado, pero revisa: '+fallos.join(', '):'Pedido cargado. Pago: '+(o.notaPago||'—'));break}
+    case 'cs-seed':S.cost=seedGuac();S.cprod='clasica';await saveCost();render();toast('Costos de Guacamole cargados');break;
+    case 'cs-add-ins':S.cost.insumos.push({id:uid(),n:'Nuevo insumo',u:'kg',c:0,m:0});await saveCost();render();break;
+    case 'cs-del-ins':S.cost.insumos.splice(+b.dataset.k,1);await saveCost();render();break;
+    case 'cs-add-line':{const path=b.dataset.path,ks=path.split('.'),pid=ks[1];if(!S.cost.rec[pid])S.cost.rec[pid]={it:[],emp:0,add:{}};const r=S.cost.rec[pid];
+      let arr=ks[2]==='it'?r.it:((r.add||(r.add={}))[ks[3]]||(r.add[ks[3]]=[]));arr.push({i:'',q:0});S.cprod=pid;await saveCost();render();break}
+    case 'cs-del-line':{const arr=csGet(b.dataset.path);if(arr){arr.splice(+b.dataset.k,1);await saveCost();render()}break}
+    case 'cs-del-rec':delete S.cost.rec[b.dataset.pid];await saveCost();render();break;
+    case 'menu-export':saveFile('menu-'+(S.aj.negocio||'negocio').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json',JSON.stringify({kaja:'menu',v:1,menu:S.menu},null,1),'application/json');toast('Menú descargado');break;
+    case 'menu-import-no':S.menuImport=null;render();break;
+    case 'menu-import-si':{const {warn,...M}=S.menuImport;await Store.set('config','menu',M);S.menuImport=null;S.menuDraft=null;S.cat=M.cats[0]?.id;toast('Menú importado: '+M.prods.length+' productos');render();break}
     case 'menu-save':{const M=S.menuDraft;
       M.prods.forEach(p=>{if(p.pres)p.pres=p.pres.filter(x=>x.n).map(x=>({n:x.n,p:+x.p||0}));else p.p=+p.p||0});
       Object.values(M.grupos).forEach(g=>g.o=g.o.map(x=>({n:x.n,p:+x.p||0})));
@@ -1276,7 +1474,12 @@ document.addEventListener('change',async e=>{if(e.target.id!=='logo-file'||!S.aj
   try{const src=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});
     const sm=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,800/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/png'))};im.onerror=rej;im.src=src});
     S.ajDraft.logoSrc=sm;S.ajDraft.logo=await procLogo(sm,S.ajDraft.ancho,S.ajDraft.logoEsc);S.ajDraft.logoOn=true;const cb=document.querySelector('[data-ac=logoOn]');if(cb)cb.checked=true;const lb=document.querySelector('label[for=logo-file]');if(lb)lb.textContent='Cambiar logo…';updTkPv();toast('Logo listo. Guarda los ajustes')}catch(err){toast('No se pudo leer esa imagen')}});
+document.addEventListener('change',async e=>{const d=e.target.dataset||{};
+  if(d.csProd){S.cprod=e.target.value;render();return}
+  if(d.cs){const ks=d.cs.split('.');if(ks[0]==='rec'&&!S.cost.rec[ks[1]])S.cost.rec[ks[1]]={it:[],emp:0,add:{}};csSet(d.cs,e.target.value);e.target.blur();await saveCost();render()}});
 document.addEventListener('change',e=>{const f=e.target.dataset&&e.target.dataset.fecha;if(!f)return;S[f]=e.target.value;e.target.blur();render()});
+document.addEventListener('change',async e=>{if(e.target.id!=='menu-file')return;const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{S.menuImport=normMenu(JSON.parse(await f.text()));render()}catch(err){toast('No se pudo leer el menú: '+err.message)}});
 document.addEventListener('change',async e=>{if(e.target.id!=='rest-file')return;const f=e.target.files[0];if(!f)return;
   try{const o=JSON.parse(await f.text());if(o.app!=='guacamole-pos'||!o.data)throw 0;S.restore=o;render()}catch(err){toast('Ese archivo no es un respaldo del punto de venta')}});
 
@@ -1293,6 +1496,7 @@ async function boot(){
   Store.watch('movimientos',docs=>{S.movs=docs;if(S.view==='caja'||S.view==='reportes')render()},onErr);
   Store.watch('config',docs=>{
     const mm=docs.find(d=>d.id==='menu');if(mm&&mm.prods){const c=clone(mm);delete c.id;S.menu=c}
+    const cs=docs.find(d=>d.id==='costeo');if(cs){const c=clone(cs);delete c.id;S.cost={...COST0(),...c}}
     const aa=docs.find(d=>d.id==='ajustes');if(aa){const c={...aa};delete c.id;S.aj={...DEFAULT_AJ,...c}}
     if(!S.menu.cats.find(c=>c.id===S.cat))S.cat=S.menu.cats[0]?.id;
     render();
