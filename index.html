@@ -597,7 +597,8 @@ function render(){
   S.pending=false;
   renderRail();
   const m=$('#main');
-  m.innerHTML=({vender:vVender,cuentas:vCuentas,caja:vCaja,clientes:vClientes,reportes:vReportes,menu:vMenu,costeo:vCosteo,ajustes:vAjustes}[S.view])();
+  if(S.lic&&(S.lic.state==='off'||S.licShow)){m.innerHTML=vActivar();return}
+  m.innerHTML=licBanner()+({vender:vVender,cuentas:vCuentas,caja:vCaja,clientes:vClientes,reportes:vReportes,menu:vMenu,costeo:vCosteo,ajustes:vAjustes}[S.view])();
 }
 document.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending)render()},50));
 
@@ -848,6 +849,46 @@ function normMenu(raw){
     const g=(x.g||[]).filter(k=>{if(grupos[k])return true;warn.push(q.n+': grupo '+k+' no existe');return false});if(g.length)q.g=g;if(x.rev)q.rev=true;return q});
   if(!prods.length)throw new Error('El archivo no trae productos');return {cats,grupos,prods,warn};
 }
+/* ===== Licencia ===== */
+const LIC_PUB={"kty":"EC","crv":"P-256","x":"ZN-YqmpPksZhhcKMc34-_LAGHek_W84BZB3mkyY10Jc","y":"u6ZvSZBBEL_fYpNTF1Fba9Bp1uCC2NSTlaj_fy4FWZA"};
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+function devCode(){let d=LS.get('kaja-dev');if(!d||!/^[A-Z0-9]{8}$/.test(d)){const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(8));d=[...r].map(x=>A[x%A.length]).join('');LS.set('kaja-dev',d)}return d}
+const fmtDev=d=>d.slice(0,4)+'-'+d.slice(4);
+const b64uDec=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+let _pubKey=null;
+async function licParse(key,dev){
+  key=String(key||'').replace(/\s+/g,'');if(!key)return null;
+  if(key.startsWith('inst:')){return key.slice(5)===await sha(dev+'|'+INST_HASH)?{exp:0,inst:true}:null}
+  const [a,b]=key.split('.');if(!a||!b)return null;
+  try{_pubKey=_pubKey||await crypto.subtle.importKey('jwk',{...LIC_PUB,ext:true},{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+    const data=b64uDec(a),ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},_pubKey,b64uDec(b),data);if(!ok)return null;
+    const [d,e,n]=new TextDecoder().decode(data).split('|');if(d!==dev)return null;
+    let exp=0;if(e&&e!=='0'){const y=+e.slice(0,4),m=+e.slice(4,6),dd=+e.slice(6,8);exp=new Date(y,m-1,dd,23,59,59).getTime()}
+    return {exp,negocio:n||''}}catch(err){return null}}
+async function checkLic(){
+  const dev=devCode();let seen=+LS.get('kaja-seen')||0;const now=Math.max(Date.now(),seen);LS.set('kaja-seen',String(now));
+  const L=await licParse(LS.get('kaja-lic'),dev);
+  if(L&&(!L.exp||now<=L.exp)){S.lic={state:'ok',dev,exp:L.exp,inst:!!L.inst,days:L.exp?Math.ceil((L.exp-now)/864e5):null};return}
+  if(L&&L.exp){S.lic={state:'off',dev,exp:L.exp,vencida:true};return}
+  let g=+LS.get('kaja-grace')||0;if(!g&&S.ventas.length){g=now;LS.set('kaja-grace',String(g))}
+  if(g&&now-g<7*864e5){S.lic={state:'grace',dev,days:Math.max(1,7-Math.floor((now-g)/864e5))};return}
+  S.lic={state:'off',dev};
+}
+function vActivar(){const L=S.lic||{};
+  return `<div class="page" style="max-width:560px;margin:0 auto"><div class="panel" style="gap:14px">
+    <h1 style="margin:0">Activa Kaja</h1>
+    ${L.vencida?`<p style="margin:0;color:var(--ketchup);font-weight:700">Tu licencia venció el ${fecha(L.exp)}. Tus ventas siguen guardadas; solo falta renovar.</p>`:'<p class="muted" style="margin:0">Para empezar a vender, activa este equipo.</p>'}
+    <div><span class="label">Código de este equipo</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b class="num" style="font-size:30px;letter-spacing:.08em;user-select:all">${fmtDev(L.dev||devCode())}</b><button class="btn small" data-act="lic-copy">Copiar</button></div>
+      <p class="muted" style="margin:4px 0 0">Mándale este código a quien te instaló Kaja. Te regresa una clave.</p></div>
+    <label><span class="label">Clave de activación</span><textarea class="in" id="lic-key" rows="3" placeholder="Pega aquí la clave"></textarea></label>
+    <div style="display:flex;gap:8px"><button class="btn primary big" data-act="lic-ok">Activar</button>${S.lic&&S.lic.state!=='off'?'<button class="btn" data-act="lic-hide">Volver</button>':''}</div>
+    ${S.ventas.length?'<div><button class="btn small" data-act="respaldo">Descargar respaldo de mis datos</button></div>':''}
+    <details><summary class="muted" style="cursor:pointer">Soy el instalador</summary><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input class="in" id="lic-inst" type="password" placeholder="Clave de instalador" style="max-width:240px"><button class="btn" data-act="lic-inst">Activar este equipo</button></div></details>
+  </div></div>`}
+function licBanner(){const L=S.lic;if(!L)return '';
+  if(L.state==='grace')return `<div class="banner info"><span>Activa Kaja en este equipo: te quedan <b>${L.days} día${L.days===1?'':'s'}</b>. Código: <b class="num">${fmtDev(L.dev)}</b></span><button class="btn small" data-act="lic-show">Activar</button></div>`;
+  if(L.state==='ok'&&L.exp&&L.days<=5)return `<div class="banner info"><span>Tu licencia vence el <b>${fecha(L.exp)}</b> (${L.days} día${L.days===1?'':'s'}).</span><button class="btn small" data-act="lic-show">Renovar</button></div>`;
+  return ''}
 /* ===== Costeo ===== */
 const COST0=()=>({v:1,ind:0,meta:35,insumos:[],rec:{}});
 const UNI={kg:'kg',lt:'litro',pza:'pieza'},QU={kg:'g',lt:'ml',pza:'pza'};
@@ -1006,6 +1047,10 @@ function vAjustes(){
         <label><span class="label">Costo de envío a domicilio</span><input class="in num" data-a="webEnvio" inputmode="decimal" value="${h(a.webEnvio||0)}"></label>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-act="web-export">Descargar archivo del menú en línea</button><span class="muted" style="font-size:13px">Súbelo a GitHub junto a la app. Enlace para tus clientes: <b style="user-select:all">${h(webUrl(a))}</b></span></div>
+    </div>
+    <div class="panel"><h3>Licencia</h3>
+      <p style="margin:0">${S.lic?.state==='ok'?(S.lic.exp?'Activa hasta el <b>'+fecha(S.lic.exp)+'</b>':'Activa <b>sin vencimiento</b>'+(S.lic.inst?' (activada por el instalador)':'')):S.lic?.state==='grace'?'Sin activar · quedan '+S.lic.days+' días':'Sin activar'} · Código del equipo: <b class="num">${fmtDev(devCode())}</b></p>
+      <div><button class="btn small" data-act="lic-show">Poner otra clave</button></div>
     </div>
     <div class="panel"><h3>Meseros</h3>
       <p class="muted" style="margin:0">Al abrir una mesa se elige quién la atiende. En Reportes verás las ventas de cada uno. Recuerda tocar “Guardar ajustes”.</p>
@@ -1463,6 +1508,12 @@ document.addEventListener('click',async e=>{
       let arr=ks[2]==='it'?r.it:((r.add||(r.add={}))[ks[3]]||(r.add[ks[3]]=[]));arr.push({i:'',q:0});S.cprod=pid;await saveCost();render();break}
     case 'cs-del-line':{const arr=csGet(b.dataset.path);if(arr){arr.splice(+b.dataset.k,1);await saveCost();render();if(S.modal&&S.modal.k==='cs')renderModal()}break}
     case 'cs-del-rec':delete S.cost.rec[b.dataset.pid];await saveCost();render();break;
+    case 'lic-show':S.licShow=true;render();break;
+    case 'lic-hide':S.licShow=false;render();break;
+    case 'lic-copy':{const c=fmtDev(devCode());try{await navigator.clipboard.writeText(c);toast('Código copiado')}catch(e){toast('Código: '+c)}break}
+    case 'lic-ok':{const k=(($('#lic-key')||{}).value||'').trim();const L=await licParse(k,devCode());if(!L){toast('Esa clave no es de este equipo o está mal copiada');break}
+      if(L.exp&&Date.now()>L.exp){toast('Esa clave ya venció');break}LS.set('kaja-lic',k.replace(/\s+/g,''));S.licShow=false;await checkLic();render();toast(L.exp?'Kaja activada hasta el '+fecha(L.exp):'Kaja activada para siempre en este equipo');break}
+    case 'lic-inst':{const v=(($('#lic-inst')||{}).value||'').trim();if(await sha(v)!==INST_HASH){toast('Clave incorrecta');break}const dev=devCode();LS.set('kaja-lic','inst:'+await sha(dev+'|'+INST_HASH));S.licShow=false;await checkLic();render();toast('Equipo activado por el instalador');break}
     case 'menu-export':saveFile('menu-'+(S.aj.negocio||'negocio').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json',JSON.stringify({kaja:'menu',v:1,menu:S.menu},null,1),'application/json');toast('Menú descargado');break;
     case 'menu-import-no':S.menuImport=null;render();break;
     case 'menu-import-si':{const {warn,...M}=S.menuImport;await Store.set('config','menu',M);S.menuImport=null;S.menuDraft=null;S.cat=M.cats[0]?.id;toast('Menú importado: '+M.prods.length+' productos');render();break}
@@ -1523,8 +1574,9 @@ document.addEventListener('change',async e=>{if(e.target.id!=='rest-file')return
 async function boot(){
   render();
   await Store.init();
+  await checkLic();setInterval(()=>{checkLic().then(render)},36e5);
   const onErr=()=>{};S.loaded=true;
-  Store.watch('ventas',docs=>{S.ventas=docs;render()},onErr);
+  Store.watch('ventas',docs=>{const first=!S._v1;S._v1=true;S.ventas=docs;if(first&&S.lic&&S.lic.state==='off'&&docs.length)checkLic().then(render);else render()},onErr);
   Store.watch('cuentas',docs=>{S.cuentas=docs;render()},onErr);
   Store.watch('cortes',docs=>{S.cortes=docs;if(S.view==='reportes')render()},onErr);
   Store.watch('clientes',docs=>{S.clientes=docs;if(S.view==='clientes')render();const f=$('#fid');if(f&&S.orden)f.innerHTML=fidHTML(S.orden)},onErr);
